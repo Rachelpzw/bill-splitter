@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>旅行记账本 · AA 分账</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#fff; --line:#e6e8ec; --text:#1f2328; --muted:#6b7280;
+  --brand:#2563eb; --brand-soft:#eaf1ff; --ok:#0f7b46; --ok-soft:#e7f6ee;
+  --warn:#b45309; --warn-soft:#fdf3e3; --danger:#c0392b; --danger-soft:#fdecea;
+  --amber:#fff8e8; --radius:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;padding-bottom:40px;touch-action:manipulation}
+.wrap{max-width:720px;margin:0 auto;padding:0 14px}
+h1,h2,h3{margin:0;font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:14px 0}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1;min-width:0}
+label{display:block;font-size:13px;color:var(--muted);margin:0 0 5px}
+input,select,textarea,button{font:inherit;color:inherit}
+input[type=text],input[type=number],input[type=email],input[type=password],input[type=date],select,textarea{
+  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;outline:none;appearance:none;touch-action:manipulation}
+input:focus,select:focus{border-color:var(--brand)}
+button{cursor:pointer;border:none;border-radius:10px;padding:11px 16px;background:var(--brand);color:#fff;font-weight:500;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+button:active{opacity:.85}
+button.ghost{background:#fff;color:var(--text);border:1px solid var(--line)}
+button.sub{background:#f1f3f6;color:var(--text)}
+button.danger{background:var(--danger-soft);color:var(--danger)}
+button.wide{width:100%}
+button:disabled{opacity:.5;cursor:default}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:14px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;margin:0 8px 8px 0}
+.chip.on{background:var(--brand-soft);border-color:var(--brand);color:var(--brand);font-weight:500}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:#c9ced6}
+.chip.on .dot{background:var(--brand)}
+.muted{color:var(--muted);font-size:13px}
+.big{font-size:22px;font-weight:600}
+.tabs{display:flex;gap:6px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;margin:14px 0}
+.tabs button{flex:1;background:transparent;color:var(--muted);padding:9px 4px;border-radius:9px;font-size:14px}
+.tabs button.on{background:var(--brand-soft);color:var(--brand);font-weight:600}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;background:#f1f3f6;color:var(--muted);padding:9px 6px;font-size:14px}
+.seg button.on{background:var(--brand);color:#fff}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:500;font-size:13px}
+.item{border-bottom:1px solid var(--line);padding:12px 0}
+.item:last-child{border-bottom:none}
+.who{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.avatar{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex:none}
+.split-line{display:flex;align-items:center;gap:10px;padding:6px 0}
+.split-line .nm{flex:1;min-width:64px}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:40px;height:40px;flex:none;padding:0;background:#f1f3f6;color:var(--text);font-size:22px;line-height:1;border-radius:10px}
+.stepper input{width:64px;flex:none;text-align:center;padding:6px}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px}
+.pill.pos{background:var(--ok-soft);color:var(--ok)}
+.pill.neg{background:var(--danger-soft);color:var(--danger)}
+.pill.flat{background:#f1f3f6;color:var(--muted)}
+.banner{padding:10px 14px;border-radius:10px;font-size:14px;margin:10px 0}
+.banner.err{background:var(--danger-soft);color:var(--danger)}
+.banner.ok{background:var(--ok-soft);color:var(--ok)}
+.banner.info{background:var(--brand-soft);color:var(--brand)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0 0}
+.top .title{font-size:17px;font-weight:600}
+.hide{display:none!important}
+.center{text-align:center}
+.mt{margin-top:12px}.mb{margin-bottom:12px}
+.tag{font-size:12px;color:var(--muted);background:#f1f3f6;padding:2px 8px;border-radius:6px}
+.mini{font-size:12px;color:var(--muted)}
+hr{border:none;border-top:1px solid var(--line);margin:14px 0}
+.sync{font-size:11px;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+.sync .d{width:6px;height:6px;border-radius:50%;background:var(--ok)}
+.sync.bad .d{background:var(--warn)}
+.sync.ing .d{background:var(--brand)}
+</style>
+</head>
+<body>
+<div class="wrap" id="root"></div>
+
+<script>
+/* ================= 配置 ================= */
+/* 同步后端默认走同源 /api/ledger，Vercel 和 Render 都是这个路径。
+   想让手机连另一台服务器（比如备用站），在设置页改「同步地址」即可，不用重新部署。 */
+function apiUrl() {
+  let v = '';
+  try { v = localStorage.getItem('taa_api') || ''; } catch (e) { v = ''; }
+  return String(v).trim() || '/api/ledger';
+}
+
+/* ================= 币种 & 默认汇率 ================= */
+/* 汇率基准 2026-09-17：
+   多数币种用人民币中间价；VND / IDR / PHP 不在中间价公布范围内，取的是当日市场中间价（仅供参考，出行前请按实际兑换价改一下）。*/
+const CURRENCIES = [
+  ['CNY','人民币','¥',1],
+  ['JPY','日元','¥',0.043419],
+  ['HKD','港元（中国香港）','HK$',0.8621],
+  ['MOP','澳门元（中国澳门）','MOP$',0.837241],
+  ['USD','美元','$',6.7628],
+  ['EUR','欧元','€',7.7762],
+  ['GBP','英镑','£',9.083],
+  ['KRW','韩元','₩',0.00491376],
+  ['THB','泰铢','฿',0.201943],
+  ['VND','越南盾','₫',0.00025821],
+  ['IDR','印尼卢比','Rp',0.00037817],
+  ['PHP','菲律宾比索','₱',0.106858],
+  ['SGD','新加坡元','S$',5.2951],
+  ['MYR','马来西亚林吉特','RM',1.654918],
+  ['AUD','澳元','A$',4.8043],
+  ['CAD','加元','C$',4.8391],
+  ['CHF','瑞士法郎','CHF',8.2367],
+  ['NZD','新西兰元','NZ$',3.8767],
+  ['RUB','俄罗斯卢布','₽',0.0797324]
+];
+const DEFAULT_RATES = {};
+CURRENCIES.forEach(c => DEFAULT_RATES[c[0]] = c[3]);
+const CNAME = {}; CURRENCIES.forEach(c => CNAME[c[0]] = c[1]);
+
+/* ---------- 自定义币种 ---------- */
+/* 账本里存 data().currencies = [{code,name,symbol,rate}]，会跟着账本一起同步给同伴 */
+function customCurrencies() {
+  const d = data();
+  return (d && Array.isArray(d.currencies)) ? d.currencies : [];
+}
+/* 内置 + 自定义，统一成 [code, 名称, 符号, 默认汇率] */
+function allCurrencies() {
+  const extra = customCurrencies()
+    .filter(c => c && c.code && !CURRENCIES.some(b => b[0] === c.code))
+    .map(c => [String(c.code).toUpperCase(), c.name || c.code, c.symbol || '', Number(c.rate) > 0 ? Number(c.rate) : 1]);
+  return CURRENCIES.concat(extra);
+}
+function isCustom(code) { return !CURRENCIES.some(b => b[0] === code); }
+function curName(code) { const c = allCurrencies().find(x => x[0] === code); return c ? c[1] : code; }
+function mergeCurrencies(a, b) {
+  const out = [], seen = {};
+  (a || []).concat(b || []).forEach(c => {
+    const k = c && c.code ? String(c.code).toUpperCase() : '';
+    if (!k || seen[k]) return;
+    seen[k] = 1;
+    out.push({ code: k, name: c.name || k, symbol: c.symbol || '', rate: Number(c.rate) > 0 ? Number(c.rate) : 1 });
+  });
+  return out;
+}
+
+/* ================= 小工具 ================= */
+const $ = s => document.querySelector(s);
+const root = document.getElementById('root');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => (Math.round((Number(n) || 0) * 100) / 100).toFixed(2);
+const uid = () => Math.random().toString(36).slice(2, 9);
+const rid = n => { const s = 'abcdefghijkmnpqrstuvwxyz23456789'; let r = '';
+  for (let i = 0; i < n; i++) r += s[Math.floor(Math.random() * s.length)]; return r; };
+const code6 = () => { const s = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r = '';
+  for (let i = 0; i < 6; i++) r += s[Math.floor(Math.random() * s.length)]; return r; };
+const today = () => new Date().toISOString().slice(0, 10);
+const COLOR = ['#2563eb','#0f7b46','#b45309','#7c3aed','#be123c','#0369a1','#a16207','#4d7c0f','#9333ea','#0e7490'];
+const colorOf = i => COLOR[i % COLOR.length];
+
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+
+/* ================= 全局状态 ================= */
+const S = {
+  view: 'boot',        // boot | lobby | join | app
+  tab: 'add',          // add | list | settle | settings
+  ledger: null,        // { id, code, data }
+  meId: null,          // 我在账本里的成员 id
+  msg: '', msgType: 'info',
+  busy: false,
+  form: null,
+  curForm: false,   // 设置页「添加自定义币种」表单是否展开
+  selMode: false,   // 明细页是否处于「批量选择」状态
+  sel: {},          // 批量选择：{ 记录id: true }
+  syncState: 'ok',     // ok | ing | bad
+  syncMsg: '已同步',
+  errCode: '',         // 最近一次失败的错误码（用于区分「我的网络」还是「服务器故障」）
+  lastSyncAt: 0,       // 最后一次同步成功的时间戳
+  recent: [],
+  history: null        // 云端历史版本列表
+};
+
+function say(msg, type) { S.msg = msg || ''; S.msgType = type || 'info'; render(); }
+function msgHtml() { return S.msg ? '<div class="banner ' + S.msgType + '">' + esc(S.msg) + '</div>' : ''; }
+
+/* ================= 账本数据 ================= */
+function data() { return S.ledger ? S.ledger.data : null; }
+function members() { return (data() && data().members) || []; }
+/* 汇率 = 内置默认值 ← 自定义币种自带值 ← 账本里改过的值 */
+function rates() {
+  const base = Object.assign({}, DEFAULT_RATES);
+  customCurrencies().forEach(c => { if (c && c.code) base[String(c.code).toUpperCase()] = Number(c.rate) > 0 ? Number(c.rate) : 1; });
+  return Object.assign(base, (data() && data().rates) || {});
+}
+function expenses() { return ((data() && data().expenses) || []).filter(e => !e.deleted); }
+function nameOf(id) { const m = members().find(x => x.id === id); return m ? m.name : '（已删除）'; }
+function idxOf(id) { return members().findIndex(x => x.id === id); }
+
+function rateOf(exp) {
+  if (exp.rateMode === 'manual' && Number(exp.manualRate) > 0) return Number(exp.manualRate);
+  const r = rates()[exp.currency];
+  return typeof r === 'number' ? r : 1;
+}
+function cnyOf(exp) {
+  const amt = Number(exp.amount) || 0;
+  return Math.round(amt * rateOf(exp) * 100) / 100;
+}
+function sharesOf(exp) {
+  const sh = exp.shares || {}, out = {};
+  let total = 0;
+  members().forEach(m => { const w = Number(sh[m.id] || 0); if (w > 0) { out[m.id] = w; total += w; } });
+  return { weights: out, total: total };
+}
+function totals() {
+  const owed = {}, paid = {};
+  members().forEach(m => { owed[m.id] = 0; paid[m.id] = 0; });
+  expenses().forEach(e => {
+    const cny = cnyOf(e), w = sharesOf(e);
+    if (w.total > 0) Object.keys(w.weights).forEach(k => { if (owed[k] !== undefined) owed[k] += cny * w.weights[k] / w.total; });
+    if (e.payer && paid[e.payer] !== undefined) paid[e.payer] += cny;
+  });
+  const net = {};
+  members().forEach(m => { net[m.id] = Math.round((paid[m.id] - owed[m.id]) * 100) / 100; });
+  return { owed, paid, net };
+}
+function planTransfers(net) {
+  const cr = [], de = [];
+  Object.keys(net).forEach(k => {
+    const v = Math.round(net[k] * 100) / 100;
+    if (v > 0.005) cr.push({ k, v }); else if (v < -0.005) de.push({ k, v: -v });
+  });
+  cr.sort((a, b) => b.v - a.v); de.sort((a, b) => b.v - a.v);
+  const out = []; let i = 0, j = 0;
+  while (i < de.length && j < cr.length) {
+    const amt = Math.round(Math.min(de[i].v, cr[j].v) * 100) / 100;
+    if (amt > 0.005) out.push({ from: de[i].k, to: cr[j].k, amt });
+    de[i].v -= amt; cr[j].v -= amt;
+    if (de[i].v < 0.005) i++;
+    if (cr[j].v < 0.005) j++;
+  }
+  return out;
+}
+
+/* ================= 云端同步（免登录：账本 ID + 6 位口令） ================= */
+/* 后端是自家的 /api/ledger，Vercel 函数或 Render 服务都行，换服务器不用改代码 */
+const OP_NAME = {
+  ledger_load: 'load', ledger_create: 'create', ledger_save: 'save',
+  ledger_history: 'history', ledger_restore: 'restore', ledger_prune_snapshots: 'prune'
+};
+async function rpc(fn, payload) {
+  const op = OP_NAME[fn];
+  if (!op) throw new Error('未知操作：' + fn);
+  let res, body = null;
+  try {
+    res = await fetch(apiUrl(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        op: op,
+        id: payload.p_id,
+        code: payload.p_code,
+        data: payload.p_data,
+        snap: payload.p_snap,
+        keep: payload.p_keep
+      })
+    });
+  } catch (e) {
+    const er = new Error('连不上服务器，检查网络或同步地址');
+    er.code = 'offline';
+    throw er;
+  }
+  try { body = await res.json(); } catch (e) { body = null; }
+  if (!res.ok || !body || body.ok === false) {
+    const code = (body && body.err) || '';
+    const e = new Error(SYS_ERR[code] || ERR_TEXT[code] || (body && body.message) || ('服务器返回 ' + res.status));
+    e.code = code;
+    throw e;
+  }
+  return body;
+}
+const ERR_TEXT = { bad_code: '口令不对', not_found: '没找到这个账本', exists: '这个账本已经存在了', bad_input: '填写的信息不完整', no_op: '服务器不认识这个操作' };
+/* 服务器侧故障码：这类不是用户的错，要说清楚 */
+const SYS_ERR = {
+  no_db: '服务器还没配好数据库（需要设置 DATABASE_URL）',
+  offline: '连不上服务器',
+  DATABASE_RESOURCE_ISOLATED: '服务器数据库暂时不可用（平台侧故障，不是你的网络问题）',
+  ACCESS_TOKEN_INVALID: '登录凭证过期了，重新打开一次页面即可'
+};
+
+function mergeData(local, remote) {
+  const b = remote || {};
+  const out = {
+    v: 1,
+    name: local.name || b.name || '旅行账本',
+    code: local.code || b.code,
+    rates: Object.assign({}, b.rates, local.rates),
+    currencies: mergeCurrencies(b.currencies, local.currencies),
+    members: (b.members || []).slice(),
+    expenses: (b.expenses || []).slice(),
+    updatedAt: Date.now()
+  };
+  const mids = {};
+  out.members.forEach(m => mids[m.id] = 1);
+  (local.members || []).forEach(m => { if (!mids[m.id]) out.members.push(m); });
+
+  const emap = {};
+  out.expenses.forEach(e => emap[e.id] = e);
+  (local.expenses || []).forEach(e => {
+    const cur = emap[e.id];
+    if (!cur || (Number(e.updatedAt) || 0) > (Number(cur.updatedAt) || 0)) emap[e.id] = e;
+  });
+  out.expenses = Object.keys(emap).map(k => emap[k])
+    .sort((x, y) => String(x.date || '').localeCompare(String(y.date || '')) || ((Number(x.createdAt) || 0) - (Number(y.createdAt) || 0)));
+  return out;
+}
+
+function saveLocal() {
+  if (!S.ledger) return;
+  LS.set('taa_cache_' + S.ledger.id, S.ledger.data);
+  const list = LS.get('taa_list', []);
+  const i = list.findIndex(x => x.id === S.ledger.id);
+  const rec = { id: S.ledger.id, code: S.ledger.code, name: data().name, at: Date.now() };
+  if (i >= 0) list[i] = rec; else list.unshift(rec);
+  LS.set('taa_list', list.slice(0, 12));
+  S.recent = LS.get('taa_list', []);
+}
+
+function setSync(state, msg) { S.syncState = state; S.syncMsg = msg || ''; }
+function hhmm() { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+/* 把同步失败翻译成一句人话 */
+function syncErrText(e) {
+  const c = (e && e.code) || '';
+  if (c === 'DATABASE_RESOURCE_ISOLATED') return '服务器数据库不可用';
+  if (c === 'bad_code') return '口令不对，无法同步';
+  if (c === 'not_found') return '账本在服务器上不存在';
+  if (c === 'ACCESS_TOKEN_INVALID') return '凭证过期，重开页面';
+  return S.ledger && S.ledger.data ? '离线（本地已保存）' : '连不上服务器';
+}
+/* 离线时的提示条：说清原因 + 给两个能立刻做的动作 */
+function offlineHtml() {
+  if (S.syncState !== 'bad' || !S.ledger) return '';
+  const down = S.errCode === 'DATABASE_RESOURCE_ISOLATED';
+  const last = S.lastSyncAt ? '上次成功同步：' + new Date(S.lastSyncAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '从来没同步成功过';
+  const why = down
+    ? '<b>服务器数据库暂时不可用</b>（平台侧故障，不是你的网络问题，换网络也没用）。账本和修改都在这台设备上，不会丢，恢复后会自动同步。'
+    : (S.errCode === 'bad_code' ? '口令不对，同步被服务器拒绝了。请用正确的口令重新加入这个账本。'
+      : '暂时连不上服务器，改动已经存在本机，联网后会自动同步。');
+  return `<div class="banner err">${why}
+    <div class="mini" style="margin-top:4px">${esc(last)}</div>
+    <div class="mt">
+      <button class="ghost" style="padding:6px 12px;font-size:13px" onclick="manualPull()">重试同步</button>
+      <button class="ghost" style="padding:6px 12px;font-size:13px;margin-left:8px" onclick="exportBackup()">导出备份到本机</button>
+    </div></div>`;
+}
+
+/* 拉取远端并合并 */
+async function pull(silent) {
+  if (!S.ledger) return false;
+  try {
+    const r = await rpc('ledger_load', { p_id: S.ledger.id, p_code: S.ledger.code });
+    if (!r || !r.ok) throw new Error(ERR_TEXT[r && r.err] || '读取失败');
+    const before = JSON.stringify(data());
+    S.ledger.data = mergeData(data(), r.data);
+    saveLocal();
+    S.lastSyncAt = Date.now(); S.errCode = '';
+    setSync('ok', '已同步 ' + hhmm());
+    if (!silent && JSON.stringify(data()) !== before) render();
+    return true;
+  } catch (e) {
+    S.errCode = (e && e.code) || '';
+    setSync('bad', syncErrText(e));
+    if (!silent) render();
+    return false;
+  }
+}
+
+/* 本地改完后推送：先拉最新合并，再整体保存 */
+async function commit(okMsg) {
+  if (!S.ledger) return;
+  saveLocal();
+  setSync('ing', '同步中…');
+  try {
+    const r = await rpc('ledger_load', { p_id: S.ledger.id, p_code: S.ledger.code });
+    if (r && r.ok) S.ledger.data = mergeData(data(), r.data);
+    const s = await rpc('ledger_save', { p_id: S.ledger.id, p_code: S.ledger.code, p_data: data() });
+    if (!s || !s.ok) { const x = new Error(ERR_TEXT[s && s.err] || '保存失败'); x.code = s && s.err || ''; throw x; }
+    saveLocal();
+    S.lastSyncAt = Date.now(); S.errCode = '';
+    setSync('ok', '已同步 ' + hhmm());
+    if (okMsg) { S.msg = okMsg; S.msgType = 'ok'; }
+  } catch (e) {
+    S.errCode = (e && e.code) || '';
+    setSync('bad', syncErrText(e));
+    const known = (e && e.code) || (e && e.message && e.message.indexOf('平台侧') >= 0);
+    S.msg = e.message + (known ? '' : '，改动已存在本机，联网后会自动同步'); S.msgType = 'err';
+  }
+}
+
+/* ================= 视图：首页（创建 / 加入） ================= */
+function viewLobby() {
+  const recent = LS.get('taa_list', []);
+  const recentHtml = recent.length ? `<div class="card"><h3 style="font-size:15px">我加入过的账本</h3><div class="mt">${
+    recent.map(l => `<button class="ghost wide mb" onclick="openSaved('${l.id}','${esc(l.code)}')">${esc(l.name || '账本')}
+      <span class="mini"> · ${l.id}</span></button>`).join('')}</div></div>` : '';
+  return `
+    <div class="center" style="padding:36px 0 8px">
+      <div style="font-size:26px;font-weight:600">旅行记账本</div>
+      <div class="muted">不用注册、不用登录，建个账本把链接发群里就能一起记</div>
+    </div>
+    ${msgHtml()}
+    ${recentHtml}
+    <div class="card">
+      <h3 style="font-size:15px">创建新账本</h3>
+      <label class="mt">账本名称</label><input type="text" id="lname" placeholder="例如：日本关西 5 日游">
+      <label class="mt">同行成员（空格或逗号分隔）</label>
+      <input type="text" id="lmembers" placeholder="张三 李华 张伟 王芳">
+      <div class="mini mt">创建后会生成专属链接和 6 位口令，发给朋友即可一起记。</div>
+      <button class="wide mt" onclick="createLedger()" ${S.busy ? 'disabled' : ''}>${S.busy ? '创建中…' : '创建并进入'}</button>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px">有账本 ID 和口令？</h3>
+      <label class="mt">账本 ID</label><input type="text" id="jid" placeholder="例如 x7k2m9pq4tzb">
+      <label class="mt">口令</label><input type="text" id="jcode" placeholder="6 位口令" style="text-transform:uppercase">
+      <button class="wide mt" onclick="joinById()">打开账本</button>
+      <div class="mini mt">通常朋友直接发你链接，点开就行，不用手填这两个。</div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px">服务器连不上时</h3>
+      <label class="mt">用朋友发来的备份文件打开</label>
+      <input type="file" accept="application/json,.json" onchange="openFromBackup(this)">
+      <div class="mini mt">服务器故障期间没法在线加入，让已经在账本里的朋友导出一份备份发你，用这里打开就能先记着，恢复后自动并回去。</div>
+    </div>`;
+}
+
+/* ================= 视图：选择「我是谁」 ================= */
+function viewJoin() {
+  const ms = members();
+  return `
+    <div class="center" style="padding:30px 0 8px">
+      <div style="font-size:22px;font-weight:600">${esc(data().name)}</div>
+      <div class="muted">先认领一下你是哪位，之后就直接进</div>
+    </div>
+    ${msgHtml()}
+    <div class="card">
+      <h3 style="font-size:15px">我是这里面的一位</h3>
+      <div class="mt">${ms.map((m, i) => `<span class="chip" onclick="claimMe('${m.id}')">
+        <span class="dot" style="background:${colorOf(i)}"></span>${esc(m.name)}</span>`).join('')}</div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px">或者，我是新来的</h3>
+      <label class="mt">你的名字</label><input type="text" id="newme" placeholder="填名字加入账本">
+      <button class="wide mt" onclick="joinAsNew()">加入并开始记账</button>
+    </div>`;
+}
+
+/* ================= 视图：主应用 ================= */
+function viewApp() {
+  const t = S.tab;
+  const tabs = `<div class="tabs">
+      <button class="${t === 'add' ? 'on' : ''}" onclick="setTab('add')">记一笔</button>
+      <button class="${t === 'list' ? 'on' : ''}" onclick="setTab('list')">明细</button>
+      <button class="${t === 'settle' ? 'on' : ''}" onclick="setTab('settle')">算账</button>
+      <button class="${t === 'settings' ? 'on' : ''}" onclick="setTab('settings')">设置</button>
+    </div>`;
+  const head = `
+    <div class="top">
+      <div><div class="title">${esc(data().name)}</div>
+        <div class="mini">${members().length} 人 · ${expenses().length} 笔 ·
+          <span class="sync ${S.syncState}" onclick="manualPull()" title="点一下立即重试同步" style="cursor:pointer"><span class="d"></span>${esc(S.syncMsg || '已同步')}</span></div></div>
+      <button class="sub" onclick="backToLobby()">切换</button>
+    </div>`;
+  const body = t === 'add' ? viewAdd() : t === 'list' ? viewList() : t === 'settle' ? viewSettle() : viewSettings();
+  return head + tabs + msgHtml() + offlineHtml() + body;
+}
+
+function newForm() {
+  const ms = members(), shares = {};
+  ms.forEach(m => shares[m.id] = 1);
+  return {
+    date: today(), item: '', currency: 'CNY', amount: '',
+    rateMode: 'table', manualRate: '', payer: S.meId || (ms[0] ? ms[0].id : ''),
+    mode: 'avg', selected: ms.map(m => m.id), shares
+  };
+}
+/* 把已记录的一笔回填成表单（_editId 非空 = 编辑模式） */
+function formFromExpense(e) {
+  const f = newForm(), ms = members(), sh = e.shares || {};
+  f.date = e.date || today();
+  f.item = e.item || '';
+  f.currency = e.currency || 'CNY';
+  f.amount = (e.amount == null ? '' : String(e.amount));
+  f.rateMode = e.rateMode === 'manual' ? 'manual' : 'table';
+  f.manualRate = (e.manualRate == null || e.manualRate === '') ? '' : String(e.manualRate);
+  f.payer = ms.some(m => m.id === e.payer) ? e.payer : (ms[0] ? ms[0].id : '');
+  f.mode = (e.mode === 'ratio' || e.mode === 'count') ? e.mode : 'avg';
+  const sel = Object.keys(sh).filter(id => ms.some(m => m.id === id));
+  f.selected = sel.length ? sel : ms.map(m => m.id);
+  ms.forEach(m => { f.shares[m.id] = (sh[m.id] != null && Number(sh[m.id]) > 0) ? sh[m.id] : 1; });
+  f._editId = e.id;
+  return f;
+}
+function viewAdd() {
+  if (!S.form) S.form = newForm();
+  const f = S.form, ms = members();
+  if (!ms.length) return '<div class="card">请先在「设置」里添加成员。</div>';
+
+  const curOpts = allCurrencies().map(c => `<option value="${c[0]}" ${f.currency === c[0] ? 'selected' : ''}>${c[0]} ${esc(c[1])}</option>`).join('');
+  const payerOpts = ms.map(m => `<option value="${m.id}" ${f.payer === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
+
+  const chips = ms.map((m, i) => {
+    const on = f.selected.includes(m.id);
+    return `<span class="chip ${on ? 'on' : ''}" onclick="toggleMember('${m.id}')">
+      <span class="dot" style="${on ? '' : 'background:' + colorOf(i)}"></span>${esc(m.name)}</span>`;
+  }).join('') + `<span class="chip" onclick="selectAll()">全选 / 反选</span>`;
+
+  let perPerson = '';
+  if (f.mode !== 'avg') {
+    perPerson = f.selected.map(id => {
+      const i = idxOf(id), v = f.shares[id];
+      const box = f.mode === 'count'
+        ? `<span class="stepper">
+            <button type="button" onclick="bump('${id}',-1)">−</button>
+            <input type="text" inputmode="decimal" id="sh_${id}" value="${esc(v)}" oninput="setShare('${id}',this.value)">
+            <button type="button" onclick="bump('${id}',1)">＋</button>
+          </span>`
+        : `<input type="text" inputmode="decimal" id="sh_${id}" style="width:110px;text-align:right"
+             value="${esc(v)}" placeholder="自己填" oninput="setShare('${id}',this.value)">`;
+      return `<div class="split-line">
+        <span class="avatar" style="background:${colorOf(i)}">${esc(nameOf(id).slice(0, 1))}</span>
+        <span class="nm">${esc(nameOf(id))}</span>
+        <span class="mini">${f.mode === 'count' ? '个数' : '比例'}</span>
+        ${box}</div>`;
+    }).join('');
+  }
+
+  const editBar = f._editId ? `<div class="banner ok">正在修改已经记下的一笔
+      <button type="button" class="sub" style="padding:4px 10px;font-size:12px;margin-left:8px"
+        onclick="cancelEdit()">放弃修改</button></div>` : '';
+
+  return `
+    <div class="card">
+      ${editBar}
+      <div class="row">
+        <div style="flex:2"><label>日期</label><input type="date" value="${f.date}" onchange="S.form.date=this.value;render()"></div>
+        <div style="flex:1"><label>币种</label><select onchange="S.form.currency=this.value;render()">${curOpts}</select></div>
+      </div>
+      <label class="mt">花了什么</label>
+      <input type="text" id="f_item" placeholder="打车 / 门票 / 晚饭…" value="${esc(f.item)}" oninput="S.form.item=this.value">
+      <label class="mt">金额（${esc(f.currency)}）</label>
+      <input type="text" inputmode="decimal" id="f_amount" placeholder="0.00" value="${esc(f.amount)}" oninput="S.form.amount=this.value;updatePreview()">
+      ${f.currency !== 'CNY' ? `
+        <div class="mt"><div class="seg">
+          <button type="button" class="${f.rateMode === 'table' ? 'on' : ''}" onclick="S.form.rateMode='table';render()">用账本汇率 ${rates()[f.currency] || 1}</button>
+          <button type="button" class="${f.rateMode === 'manual' ? 'on' : ''}" onclick="S.form.rateMode='manual';render()">自己填汇率</button>
+        </div></div>
+        ${f.rateMode === 'manual' ? `<label class="mt">本次汇率（1 ${esc(f.currency)} = ? 元）</label>
+          <input type="text" inputmode="decimal" id="f_rate" placeholder="${rates()[f.currency] || 1}" value="${esc(f.manualRate)}" oninput="S.form.manualRate=this.value;updatePreview()">` : ''}
+        <div class="mini mt">折合人民币 ¥<span id="cnyHint">${money(cnyNow())}</span></div>` : ''}
+      <label class="mt">谁付的钱</label>
+      <select onchange="S.form.payer=this.value;render()">${payerOpts}</select>
+      <label class="mt">怎么分</label>
+      <div class="seg">
+        <button type="button" class="${f.mode === 'avg' ? 'on' : ''}" onclick="setMode('avg')">人均</button>
+        <button type="button" class="${f.mode === 'ratio' ? 'on' : ''}" onclick="setMode('ratio')">按比例</button>
+        <button type="button" class="${f.mode === 'count' ? 'on' : ''}" onclick="setMode('count')">按个数</button>
+      </div>
+      <label class="mt">谁参与了（点一下就能选/取消）</label>
+      <div>${chips}</div>
+      ${perPerson ? `<hr><div>${perPerson}</div>` : ''}
+      <div id="previewArea">${previewHtml()}</div>
+      <button class="wide mt" onclick="addExpense()" ${S.busy ? 'disabled' : ''}>${S.busy ? '保存中…' : (f._editId ? '保存修改' : '保存这一笔')}</button>
+      ${f._editId ? `<button class="ghost wide mt" onclick="cancelEdit()">放弃修改，回到明细</button>` : ''}
+    </div>`;
+}
+
+function selIds() { return expenses().map(e => e.id).filter(id => S.sel && S.sel[id]); }
+function viewList() {
+  const es = expenses();
+  if (!es.length) { exitSelSilent(); return '<div class="card center muted">还没有记录，去「记一笔」吧</div>'; }
+  const picking = !!S.selMode;
+  const rows = es.slice().reverse().map(e => {
+    const cny = cnyOf(e), w = sharesOf(e);
+    const on = picking && !!(S.sel && S.sel[e.id]);
+    const who = Object.keys(w.weights).map(k => {
+      const i = idxOf(k);
+      return `<span class="chip" style="margin:0 4px 0 0;padding:4px 10px;font-size:12px;cursor:default">
+        <span class="dot" style="background:${colorOf(i)}"></span>${esc(nameOf(k))}
+        ${w.total > 0 ? ' ¥' + money(cny * w.weights[k] / w.total) : ''}</span>`;
+    }).join('');
+    const actions = picking ? '' : `
+      <div class="mt">
+        <button class="sub" style="padding:6px 12px;font-size:13px" onclick="editExpense('${e.id}')">修改</button>
+        <button class="danger" style="padding:6px 12px;font-size:13px;margin-left:8px" onclick="delExpense('${e.id}')">删除</button>
+      </div>`;
+    return `<div class="item${picking ? ' pick' + (on ? ' on' : '') : ''}"${picking ? ` onclick="toggleSel('${e.id}')"` : ''}>
+      <div class="who">
+        ${picking ? `<span class="boxpick">✓</span>` : ''}
+        <span class="avatar" style="background:${colorOf(idxOf(e.payer))}">${esc(nameOf(e.payer).slice(0, 1))}</span>
+        <b>${esc(e.item || '未命名')}</b>
+        <span class="tag">${esc(nameOf(e.payer))} 付</span>
+        ${e.currency !== 'CNY' ? `<span class="tag">${esc(e.currency)} ${money(e.amount)}</span>` : ''}
+        <span style="margin-left:auto" class="big">¥${money(cny)}</span>
+      </div>
+      <div class="mini" style="margin:6px 0">${esc(e.date)} · ${e.mode === 'count' ? '按个数' : e.mode === 'ratio' ? '按比例' : '人均'} · 参与 ${Object.keys(w.weights).length} 人</div>
+      <div>${who}</div>
+      ${actions}
+    </div>`;
+  }).join('');
+  const head = picking ? pickBar(es) : `
+    <div class="selbar">
+      <span class="cnt">共 ${es.length} 笔 · 合计 ¥${money(es.reduce((a, e) => a + cnyOf(e), 0))}</span>
+      <button class="sub" style="padding:6px 12px;font-size:13px" onclick="enterSel()">批量删除</button>
+    </div>`;
+  return `<div class="card">${head}${rows}</div>`;
+}
+/* 批量选择状态的顶部工具条 */
+function pickBar(es) {
+  const n = selIds().length, all = es.length;
+  const sum = es.reduce((a, e) => a + (S.sel[e.id] ? cnyOf(e) : 0), 0);
+  return `<div class="selbar">
+      <button class="sub" style="padding:6px 12px;font-size:13px" onclick="selAll()">${n === all ? '全不选' : '全选'}</button>
+      <button class="ghost" style="padding:6px 12px;font-size:13px" onclick="exitSel()">退出</button>
+      <span class="cnt">已选 ${n} / ${all} 笔 · ¥${money(sum)}</span>
+      <button class="danger" style="padding:6px 12px;font-size:13px" onclick="delSelected()" ${n ? '' : 'disabled'}>删除所选</button>
+    </div>`;
+}
+
+function viewSettle() {
+  const { owed, paid, net } = totals();
+  const ms = members();
+  if (!ms.length) return '<div class="card center muted">还没有成员</div>';
+  const rows = ms.map((m, i) => {
+    const v = net[m.id], cls = v > 0.005 ? 'pos' : v < -0.005 ? 'neg' : 'flat';
+    const txt = v > 0.005 ? '应收回 ¥' + money(v) : v < -0.005 ? '应支付 ¥' + money(-v) : '已平';
+    return `<tr>
+      <td><span class="avatar" style="background:${colorOf(i)};display:inline-flex;vertical-align:middle;margin-right:6px">${esc(m.name.slice(0, 1))}</span>${esc(m.name)}</td>
+      <td>¥${money(owed[m.id])}</td><td>¥${money(paid[m.id])}</td>
+      <td><span class="pill ${cls}">¥${money(v)}</span></td>
+      <td style="text-align:left" class="mini">${txt}</td></tr>`;
+  }).join('');
+  const plan = planTransfers(net);
+  const planHtml = plan.length ? plan.map(p => `
+      <div class="split-line"><span class="avatar" style="background:${colorOf(idxOf(p.from))}">${esc(nameOf(p.from).slice(0, 1))}</span>
+        <span class="nm">${esc(nameOf(p.from))} <span class="mini">转给</span> ${esc(nameOf(p.to))}</span>
+        <b>¥${money(p.amt)}</b></div>`).join('')
+    : '<div class="center muted">所有人都已平账 🎉</div>';
+  const sumOwed = ms.reduce((a, m) => a + owed[m.id], 0);
+  const sumPaid = ms.reduce((a, m) => a + paid[m.id], 0);
+  const planText = plan.map(p => nameOf(p.from) + ' 转给 ' + nameOf(p.to) + ' ¥' + money(p.amt)).join('\\n');
+  return `
+    <div class="card">
+      <table><thead><tr><th>成员</th><th>应付</th><th>已付</th><th>差额</th><th style="text-align:left">怎么结</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <div class="mini mt">合计应付 ¥${money(sumOwed)} · 合计已付 ¥${money(sumPaid)} · ${Math.abs(sumOwed - sumPaid) < 0.02 ? '✓ 账已平' : '⚠ 差 ¥' + money(sumOwed - sumPaid)}</div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px">最优转账方案（${plan.length} 笔转账即可结清）</h3>
+      <div class="mt">${planHtml}</div>
+      <button class="ghost wide mt" onclick="copyPlan()">复制结算清单</button>
+      <textarea id="plantext" class="hide">${esc(planText)}</textarea>
+    </div>`;
+}
+
+function viewSettings() {
+  const ms = members();
+  const memberRows = ms.map((m, i) => `
+    <div class="split-line">
+      <span class="avatar" style="background:${colorOf(i)}">${esc(m.name.slice(0, 1))}</span>
+      <span class="nm">${esc(m.name)}${m.id === S.meId ? ' <span class="tag">我</span>' : ''}</span>
+      <button class="sub" style="padding:5px 10px;font-size:13px" onclick="renameMember('${m.id}')">改名</button>
+      <button class="danger" style="padding:5px 10px;font-size:13px" onclick="removeMember('${m.id}')">删除</button>
+    </div>`).join('') || '<div class="muted">还没有成员</div>';
+  const rateRows = allCurrencies().filter(c => c[0] !== 'CNY').map(c => `
+    <div class="split-line"><span class="nm">${c[0]} ${esc(c[1])}${isCustom(c[0]) ? ' <span class="tag">自定义</span>' : ''}</span>
+      <input type="text" inputmode="decimal" style="width:110px;text-align:right"
+        value="${rates()[c[0]]}" onchange="setRate('${c[0]}',this.value)">
+      <span class="mini">元 / 1 ${c[0]}</span>
+      ${isCustom(c[0]) ? `<button class="danger" style="padding:5px 10px;font-size:13px"
+        onclick="removeCurrency('${c[0]}')">删除</button>` : ''}</div>`).join('');
+  const link = location.origin + location.pathname + '?ledger=' + S.ledger.id + '&code=' + S.ledger.code;
+  return `
+    <div class="card">
+      <h3 style="font-size:15px">成员（${ms.length} 人）</h3>
+      <div class="mt">${memberRows}</div>
+      <button class="ghost wide mt" onclick="addMember()">＋ 添加成员</button>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px">分享给朋友</h3>
+      <div class="mini mt">把链接发到群里，朋友点开、认领名字就能一起记，<b>不需要注册或登录</b>。</div>
+      <div class="row mt"><input type="text" id="invite" value="${esc(link)}" readonly></div>
+      <div class="row mt"><button class="ghost" onclick="copyInvite()">复制邀请链接</button>
+        <button class="ghost" onclick="copyText('${S.ledger.id}','账本 ID 已复制')">复制账本 ID</button></div>
+      <div class="mini mt">口令 <b>${esc(S.ledger.code)}</b>（链接里已包含，别人拿到链接才有权限，链接别发到公开地方）
+        <button class="sub" style="padding:3px 8px;font-size:12px;margin-left:6px" onclick="copyText('${S.ledger.code}','口令已复制')">复制</button></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px">汇率（1 单位外币 = ? 人民币）</h3>
+      <div class="mini">默认 2026-09-17 汇率，出行前按当天实际汇率改一下就行；个别开销也可以在这一笔里单独填汇率。</div>
+      <div class="mt">${rateRows}</div>
+      ${newCurrencyFormHtml()}
+      <button class="ghost wide mt" onclick="toggleCurForm()">${S.curForm ? '收起' : '＋ 添加自定义币种'}</button>
+      <button class="ghost wide mt" onclick="resetRates()">恢复默认汇率</button>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px">备份与恢复</h3>
+      <div class="mini mt">每次保存，云端会自动留一份旧版本，<b>每个账本只留最近 5 份</b>，更早的会自动丢弃。删错了、改坏了都能一键回滚，重要的也建议导出文件自己留底。</div>
+      <button class="ghost wide mt" onclick="exportBackup()">导出备份文件到本机</button>
+      <button class="ghost wide mt" onclick="loadHistory()">${S.history ? '刷新历史版本' : '查看历史版本'}</button>
+      <div id="histArea" class="mt">${historyHtml()}</div>
+      <button class="ghost wide mt" onclick="pruneSnapshots()" ${S.busy ? 'disabled' : ''}>清理旧版本（只留最近 5 份）</button>
+      <div class="mini mt">如果发现云端还存着以前攒下的大量旧版本，点这里一次性清掉多余的。</div>
+      <hr>
+      <label>合并别人的备份（推荐）</label>
+      <input type="file" accept="application/json,.json" onchange="importBackup(this)">
+      <div class="mini mt">两边的记录都保留，同一笔按最后修改时间取新的。服务器同步不上时，大家各自导出、互传合并用这个。</div>
+      <label style="margin-top:12px">用备份文件覆盖当前内容</label>
+      <input type="file" accept="application/json,.json" onchange="importOverwrite(this)">
+      <div class="mini mt">以文件为准完全替换，覆盖前也会自动存快照。</div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px">同步服务器</h3>
+      <div class="mini mt">默认用本站自带的接口。如果另一个站点更快（比如备用站），把它的地址填在这里，手机电脑都会改用它同步，不用重新部署。填完回到「记一笔」等几秒看顶部状态。</div>
+      <input type="text" id="apiBase" value="${esc(apiUrl())}" placeholder="/api/ledger" onchange="setApi(this.value)">
+      <div class="row mt"><button class="ghost" onclick="resetApi()">恢复默认</button>
+        <button class="ghost" onclick="testApi()">测试连接</button></div>
+      <div class="mini mt">示例：https://你的备用站.onrender.com/api/ledger</div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:15px">账本</h3>
+      <button class="ghost wide mt" onclick="renameLedger()">修改账本名称</button>
+      <button class="ghost wide mt" onclick="manualPull()">立即刷新数据</button>
+      <button class="danger wide mt" onclick="leaveLedger()">退出这个账本</button>
+    </div>`;
+}
+
+/* ================= 渲染 ================= */
+function render() {
+  if (S.view === 'boot') { root.innerHTML = '<div class="center muted" style="padding:60px 0">加载中…</div>'; return; }
+  if (S.view === 'lobby') { root.innerHTML = viewLobby(); return; }
+  if (S.view === 'join') { root.innerHTML = viewJoin(); return; }
+  root.innerHTML = viewApp();
+}
+function setTab(t) {
+  // 离开「记一笔」时丢掉未保存的编辑态，避免下次进来误改旧账
+  if (S.tab === 'add' && t !== 'add' && S.form && S.form._editId) S.form = newForm();
+  S.tab = t; S.curForm = false; S.msg = '';
+  if (t !== 'list') { S.selMode = false; S.sel = {}; }   // 离开明细页就退出批量选择
+  if (t === 'add' && (!S.form || S.form._done)) S.form = newForm();
+  render();
+}
+function backToLobby() { S.view = 'lobby'; S.form = null; S.msg = ''; S.recent = LS.get('taa_list', []); render(); }
+function manualPull() { pull(false).then(() => { say('已刷新', 'ok'); }); }
+
+/* ================= 表单交互 ================= */
+function toggleMember(id) {
+  const f = S.form, i = f.selected.indexOf(id);
+  if (i >= 0) f.selected.splice(i, 1); else { f.selected.push(id); if (!f.shares[id]) f.shares[id] = 1; }
+  render();
+}
+function selectAll() {
+  const f = S.form, all = members().map(m => m.id);
+  f.selected = f.selected.length === all.length ? [] : all;
+  f.selected.forEach(id => { if (!f.shares[id]) f.shares[id] = 1; });
+  render();
+}
+/* 人均时权重恒为 1；其它方式用填的份额 */
+function weightOf(id) {
+  const f = S.form;
+  return f.mode === 'avg' ? 1 : (Number(f.shares[id]) || 0);
+}
+function cnyNow() {
+  const f = S.form;
+  const amt = Number(f.amount) || 0;
+  const rate = (f.rateMode === 'manual' && Number(f.manualRate) > 0) ? Number(f.manualRate) : (rates()[f.currency] || 1);
+  return amt * rate;
+}
+function previewHtml() {
+  const f = S.form;
+  const cny = cnyNow();
+  let total = 0;
+  f.selected.forEach(id => total += weightOf(id));
+  if (!(cny > 0) || !(total > 0)) return '';
+  return `<hr><div class="mini mb">这一笔每人应付</div><div>${f.selected.map(id => `
+    <span class="chip on" style="margin-right:6px">
+      <span class="dot" style="background:${colorOf(idxOf(id))}"></span>${esc(nameOf(id))} ¥${money(cny * weightOf(id) / total)}</span>`).join('')}</div>`;
+}
+/* 只刷新预览，不整页重绘 —— 保证输入框不丢焦点、小数点能正常输入 */
+function updatePreview() {
+  const p = document.getElementById('previewArea');
+  if (p) p.innerHTML = previewHtml();
+  const c = document.getElementById('cnyHint');
+  if (c) c.textContent = money(cnyNow());
+}
+function setMode(m) {
+  const f = S.form;
+  f.mode = m;
+  if (m === 'avg') f.selected.forEach(id => f.shares[id] = 1);
+  render();
+}
+function setShare(id, v) { S.form.shares[id] = v; updatePreview(); }
+function bump(id, d) {
+  const cur = Number(S.form.shares[id]);
+  const v = Math.max(0, (isNaN(cur) ? 0 : cur) + d);
+  S.form.shares[id] = v;
+  const el = document.getElementById('sh_' + id);
+  if (el) el.value = v;
+  updatePreview();
+}
+
+/* ================= 业务动作 ================= */
+async function addExpense() {
+  const f = S.form;
+  if (!f.item.trim()) return say('填一下这一笔是什么', 'err');
+  const amt = Number(f.amount);
+  if (!(amt > 0)) return say('金额请填大于 0 的数字', 'err');
+  if (!f.selected.length) return say('至少选一个参与的人', 'err');
+  const shares = {};
+  f.selected.forEach(id => {
+    const w = weightOf(id);   // 与预览用同一个函数，保证「看到的 = 存进去的」
+    if (w > 0) shares[id] = w;
+  });
+  if (!Object.keys(shares).length) return say('参与人的份数不能都是 0', 'err');
+  S.busy = true; render();
+  const now = Date.now();
+  data().expenses = data().expenses || [];
+  const editId = f._editId || '';
+  const rec = {
+    id: editId || (uid() + now.toString(36).slice(-4)),
+    date: f.date, item: f.item.trim(), currency: f.currency, amount: amt,
+    rateMode: f.rateMode, manualRate: f.manualRate ? Number(f.manualRate) : null,
+    payer: f.payer, mode: f.mode, shares,
+    by: S.meId || '', createdAt: now, updatedAt: now
+  };
+  if (editId) {
+    const i = data().expenses.findIndex(x => x.id === editId);
+    if (i < 0) {
+      S.busy = false;
+      return say('这一笔已经不在了（可能刚被别人删掉）', 'err');
+    }
+    const old = data().expenses[i];
+    rec.createdAt = old.createdAt || now;          // 保留原始创建时间
+    rec.by = old.by || '';                          // 保留原记录人
+    rec.editedBy = S.meId || '';
+    data().expenses[i] = rec;
+  } else {
+    data().expenses.push(rec);
+  }
+  data().updatedAt = now;
+  await commit(editId ? '已修改：' + f.item.trim() : '已保存：' + f.item.trim());
+  S.form = newForm();
+  S.busy = false;
+  if (editId) S.tab = 'list';    // 改完回到明细，方便确认结果
+  render();
+}
+/* 修改已记录的一笔 */
+function editExpense(id) {
+  const e = (data().expenses || []).find(x => x.id === id && !x.deleted);
+  if (!e) return say('这一笔找不到了', 'err');
+  if (S.form && S.form._editId && S.form._editId !== id &&
+      (S.form.item || S.form.amount) &&
+      !confirm('当前正在修改另一笔，还没保存。要改成修改这一笔吗？')) return;
+  S.form = formFromExpense(e);
+  S.tab = 'add'; S.msg = '';
+  render();
+  const el = document.getElementById('root');
+  if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' });
+}
+function cancelEdit() { S.form = newForm(); S.tab = 'list'; S.msg = ''; render(); }
+async function delExpense(id) {
+  if (!confirm('确定删除这一笔？')) return;
+  const e = (data().expenses || []).find(x => x.id === id);
+  if (e) { e.deleted = true; e.updatedAt = Date.now(); }
+  await commit('已删除');
+  render();
+}
+
+/* ================= 批量删除 ================= */
+function enterSel() { S.selMode = true; S.sel = {}; S.msg = ''; render(); }
+function exitSel() { S.selMode = false; S.sel = {}; S.msg = ''; render(); }
+function exitSelSilent() { S.selMode = false; S.sel = {}; }   // 内部用：不触发 render，避免递归
+function toggleSel(id) {
+  if (!S.sel) S.sel = {};
+  if (S.sel[id]) delete S.sel[id]; else S.sel[id] = true;
+  render();
+}
+function selAll() {
+  const es = expenses(), n = selIds().length;
+  if (n === es.length) S.sel = {};                       // 已全选 → 全不选
+  else { S.sel = {}; es.forEach(e => S.sel[e.id] = true); }
+  render();
+}
+async function delSelected() {
+  const ids = selIds();
+  if (!ids.length) return say('还没勾选要删的记录', 'err');
+  if (!confirm('确定删除选中的 ' + ids.length + ' 笔？\n删错了可以去「设置 → 备份与恢复」里找回上一个版本。')) return;
+  const now = Date.now();
+  (data().expenses || []).forEach(e => {
+    if (ids.indexOf(e.id) >= 0) { e.deleted = true; e.updatedAt = now; e.deletedBy = S.meId || ''; }
+  });
+  exitSelSilent();
+  await commit('已删除 ' + ids.length + ' 笔');
+  render();
+}
+
+/* ================= 账本管理 ================= */
+async function createLedger() {
+  const name = ($('#lname').value || '').trim() || '旅行账本';
+  const raw = ($('#lmembers').value || '').trim();
+  const names = raw.split(/[\s,，、]+/).filter(Boolean);
+  if (!names.length) return say('至少填一个成员名字', 'err');
+  S.busy = true; render();
+  const id = rid(12), code = code6();
+  const ms = names.map(n => ({ id: uid(), name: n }));
+  const d = { v: 1, name: name, code: code, members: ms, expenses: [], rates: Object.assign({}, DEFAULT_RATES), updatedAt: Date.now() };
+  try {
+    const r = await rpc('ledger_create', { p_id: id, p_code: code, p_data: d });
+    if (!r || !r.ok) throw new Error(ERR_TEXT[r && r.err] || '创建失败');
+    S.ledger = { id, code, data: d };
+    S.meId = ms[0].id;
+    LS.set('taa_me_' + id, S.meId);
+    saveLocal();
+    S.view = 'app'; S.tab = 'settings'; S.busy = false;
+    S.msg = '账本已创建，复制下面的链接发给朋友'; S.msgType = 'ok';
+    render();
+  } catch (e) { S.busy = false; say('创建失败：' + e.message, 'err'); }
+}
+async function joinById() {
+  const id = ($('#jid').value || '').trim();
+  const code = ($('#jcode').value || '').trim().toUpperCase();
+  if (id.length < 6) return say('请填账本 ID', 'err');
+  if (code.length < 4) return say('请填 6 位口令', 'err');
+  await openLedger(id, code);
+}
+async function openSaved(id, code) {
+  const cached = LS.get('taa_cache_' + id, null);
+  if (cached) {
+    S.ledger = { id, code, data: cached };
+    S.meId = LS.get('taa_me_' + id, null);
+    S.view = 'app'; S.tab = 'add'; S.msg = ''; render();
+    pull(false);
+    return;
+  }
+  await openLedger(id, code);
+}
+async function openLedger(id, code) {
+  S.busy = true; render();
+  try {
+    const r = await rpc('ledger_load', { p_id: id, p_code: code });
+    if (!r || !r.ok) { S.busy = false; return say(ERR_TEXT[r && r.err] || '打不开这个账本', 'err'); }
+    S.ledger = { id: id, code: code, data: r.data };
+    S.meId = LS.get('taa_me_' + id, null);
+    saveLocal();
+    S.busy = false;
+    if (!S.meId || !members().some(m => m.id === S.meId)) { S.view = 'join'; S.msg = ''; return render(); }
+    S.view = 'app'; S.tab = 'add'; S.msg = ''; render();
+  } catch (e) { S.busy = false; say(e.message, 'err'); }
+}
+/* 服务器不通时用备份文件直接进入账本（本地打开，联网后再同步） */
+function openFromBackup(input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const obj = JSON.parse(fr.result);
+      const d = obj && obj.data, id = obj && obj.id;
+      const code = (obj && obj.code) || (d && d.code);
+      if (!d || !Array.isArray(d.members) || !id || !code) throw new Error('这不是旅行记账本的备份文件');
+      S.ledger = { id: id, code: code, data: d };
+      S.meId = LS.get('taa_me_' + id, null);
+      d.code = code;
+      saveLocal();
+      if (!S.meId || !members().some(m => m.id === S.meId)) { S.view = 'join'; S.msg = '先认领一下你是谁'; S.msgType = 'info'; render(); }
+      else { S.view = 'app'; S.tab = 'add'; S.msg = '已用备份文件打开，改动先存在本机，连上服务器后会自动同步'; S.msgType = 'info'; render(); pull(false); }
+    } catch (e) { S.msg = '打不开：' + e.message; S.msgType = 'err'; render(); }
+  };
+  fr.readAsText(f);
+  input.value = '';
+}
+function afterIdentify() {
+  LS.set('taa_me_' + S.ledger.id, S.meId);
+  S.view = 'app'; S.tab = 'add'; S.msg = ''; render();
+  pruneAuto();
+}
+/* 静默整理：数据库可用的话，每天最多顺手清理一次多余旧版本。
+   服务器不支持或不可用时完全静默，不影响记账。 */
+function pruneAuto() {
+  try {
+    const key = 'taa_prune_' + S.ledger.id;
+    if (Date.now() - Number(LS.get(key, 0)) < 24 * 3600 * 1000) return;
+    LS.set(key, Date.now());
+    rpc('ledger_prune_snapshots', { p_id: S.ledger.id, p_code: S.ledger.code, p_keep: 5 })
+      .then(() => {}).catch(() => {});
+  } catch (e) {}
+}
+function claimMe(mid) {
+  S.meId = mid;
+  afterIdentify();
+}
+async function joinAsNew() {
+  const n = ($('#newme').value || '').trim();
+  if (!n) return say('填一下你的名字', 'err');
+  const exist = members().find(m => m.name === n);
+  if (exist) { S.meId = exist.id; return afterIdentify(); }
+  const m = { id: uid(), name: n };
+  data().members.push(m);
+  S.meId = m.id;
+  data().updatedAt = Date.now();
+  afterIdentify();
+  commit('已加入账本');
+}
+
+/* ================= 设置动作 ================= */
+async function addMember() {
+  const n = prompt('新成员的名字？');
+  if (!n || !n.trim()) return;
+  data().members.push({ id: uid(), name: n.trim() });
+  data().updatedAt = Date.now();
+  await commit('已添加成员'); render();
+}
+async function renameMember(id) {
+  const m = members().find(x => x.id === id);
+  const n = prompt('改成什么名字？', m.name);
+  if (!n || !n.trim()) return;
+  m.name = n.trim();
+  data().updatedAt = Date.now();
+  await commit('已改名'); render();
+}
+async function removeMember(id) {
+  const used = expenses().some(e => (e.shares || {})[id] || e.payer === id);
+  if (used && !confirm('这个成员已经有账目记录了，删除后相关记录会算不平。确定删除？')) return;
+  data().members = members().filter(m => m.id !== id);
+  data().updatedAt = Date.now();
+  await commit('已删除成员'); render();
+}
+async function setRate(c, v) {
+  const n = Number(v);
+  if (!(n > 0)) return say('汇率要大于 0', 'err');
+  data().rates = Object.assign({}, rates());
+  data().rates[c] = n;
+  data().updatedAt = Date.now();
+  await commit(c + ' 汇率已更新');
+  render();
+}
+async function resetRates() {
+  if (!confirm('恢复内置币种的默认汇率？（你自己添加的币种不受影响）')) return;
+  const keep = {};
+  customCurrencies().forEach(c => {
+    if (!c || !c.code) return;
+    const k = String(c.code).toUpperCase();
+    const cur = data().rates || {};
+    keep[k] = (cur[k] != null && Number(cur[k]) > 0) ? Number(cur[k]) : (Number(c.rate) > 0 ? Number(c.rate) : 1);
+  });
+  data().rates = Object.assign({}, DEFAULT_RATES, keep);
+  data().updatedAt = Date.now();
+  await commit('已恢复默认汇率');
+}
+/* ---------------- 自定义币种 ---------------- */
+function toggleCurForm() { S.curForm = !S.curForm; S.msg = ''; render(); }
+function newCurrencyFormHtml() {
+  if (!S.curForm) return '';
+  return `<div class="mt">
+    <div class="row">
+      <div style="flex:1"><label>代号</label>
+        <input type="text" id="nc_code" maxlength="8" placeholder="VND" autocomplete="off"></div>
+      <div style="flex:2"><label>名称</label>
+        <input type="text" id="nc_name" maxlength="12" placeholder="越南盾" autocomplete="off"></div>
+    </div>
+    <div class="row mt">
+      <div style="flex:1"><label>符号（可空）</label>
+        <input type="text" id="nc_sym" maxlength="4" placeholder="₫" autocomplete="off"></div>
+      <div style="flex:1"><label>1 单位 = ? 人民币</label>
+        <input type="text" inputmode="decimal" id="nc_rate" placeholder="0.00027" autocomplete="off"></div>
+    </div>
+    <button class="wide mt" onclick="saveNewCurrency()" ${S.busy ? 'disabled' : ''}>保存这个币种</button>
+    <div class="mini mt">保存后就能在「记一笔」的币种里选到，也能像内置币种一样改汇率、分享给同伴。</div>
+  </div>`;
+}
+function val(id) { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; }
+async function saveNewCurrency() {
+  const code = val('nc_code').toUpperCase();
+  const name = val('nc_name');
+  const sym = val('nc_sym');
+  const rate = Number(val('nc_rate'));
+  if (!/^[A-Z0-9]{2,8}$/.test(code)) return say('代号用 2-8 位字母或数字，比如 VND、VND2', 'err');
+  if (!name) return say('填一下币种名称，比如「越南盾」', 'err');
+  if (CURRENCIES.some(x => x[0] === code)) return say('这是内置币种，直接改它的汇率就行', 'err');
+  if (customCurrencies().some(x => String(x.code).toUpperCase() === code)) return say('这个代号已经加过了', 'err');
+  if (!(rate > 0)) return say('汇率要大于 0', 'err');
+  const d = data();
+  d.currencies = customCurrencies().concat([{ code: code, name: name, symbol: sym, rate: rate }]);
+  d.rates = Object.assign({}, rates());
+  d.rates[code] = rate;
+  d.updatedAt = Date.now();
+  S.curForm = false;
+  await commit('已添加币种 ' + code + '（' + name + '）');
+  render();
+}
+async function removeCurrency(code) {
+  const used = expenses().some(e => String(e.currency).toUpperCase() === String(code).toUpperCase());
+  if (used && !confirm('已经有账目用了这个币种。删除后它不会再出现在币种列表里，但已有记录的汇率会保留，不会算错。确定删除？')) return;
+  const d = data();
+  const up = String(code).toUpperCase();
+  d.currencies = customCurrencies().filter(c => String(c.code).toUpperCase() !== up);
+  d.updatedAt = Date.now();
+  if (S.form && String(S.form.currency).toUpperCase() === up) S.form.currency = 'CNY';
+  await commit('已删除币种 ' + up);
+  render();
+}
+async function renameLedger() {
+  const n = prompt('账本名称', data().name);
+  if (!n || !n.trim()) return;
+  data().name = n.trim();
+  data().updatedAt = Date.now();
+  await commit('账本名称已更新');
+}
+async function leaveLedger() {
+  if (!confirm('退出后需要重新用链接加入，确定退出？')) return;
+  LS.del('taa_me_' + S.ledger.id);
+  LS.del('taa_cache_' + S.ledger.id);
+  const list = LS.get('taa_list', []).filter(x => x.id !== S.ledger.id);
+  LS.set('taa_list', list);
+  S.ledger = null; S.meId = null; S.form = null;
+  backToLobby();
+}
+function copyText(t, okMsg) {
+  const done = () => say(okMsg || '已复制', 'ok');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(done).catch(() => fallbackCopy(t, done));
+  } else fallbackCopy(t, done);
+}
+function fallbackCopy(t, done) {
+  const ta = document.createElement('textarea');
+  ta.value = t; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); }
+  catch (e) { say('复制失败，请手动选择复制', 'err'); }
+  document.body.removeChild(ta);
+}
+function copyInvite() { const el = $('#invite'); copyText(el ? el.value : '', '邀请链接已复制'); }
+function copyPlan() { const el = $('#plantext'); copyText(el ? el.value : '', '结算清单已复制'); }
+
+/* ================= 备份 / 历史版本 ================= */
+function historyHtml() {
+  if (!S.history) return '';
+  const items = S.history.items || [];
+  if (!items.length) return '<div class="mini">还没有历史版本，改动一次后就会出现。</div>';
+  return '<div class="mini mb">最近 ' + Math.min(items.length, 10) + ' 个版本</div>' + items.slice(0, 10).map(it => `
+    <div class="split-line">
+      <span class="nm">${esc(it.at)} · ${it.n} 笔${it.name ? ' · ' + esc(it.name) : ''}</span>
+      <button class="sub" style="padding:5px 10px;font-size:13px" onclick="restoreSnap(${it.id})">恢复到这时</button>
+    </div>`).join('');
+}
+function exportBackup() {
+  const payload = { app: 'travel-aa', v: 1, exportedAt: new Date().toISOString(), id: S.ledger.id, code: S.ledger.code, data: data() };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = (data().name || '账本') + '-备份-' + today() + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  say('备份文件已下载，建议顺手发一份到群里留底', 'ok');
+}
+async function loadHistory() {
+  try {
+    const r = await rpc('ledger_history', { p_id: S.ledger.id, p_code: S.ledger.code });
+    if (!r || !r.ok) throw new Error(ERR_TEXT[r && r.err] || '读取失败');
+    S.history = r; render();
+  } catch (e) { say('读取历史失败：' + e.message, 'err'); }
+}
+async function restoreSnap(sid) {
+  if (!confirm('恢复到这个版本？当前内容会先自动存一份快照，不会彻底丢失。')) return;
+  S.busy = true; render();
+  try {
+    const r = await rpc('ledger_restore', { p_id: S.ledger.id, p_code: S.ledger.code, p_snap: sid });
+    if (!r || !r.ok) throw new Error(ERR_TEXT[r && r.err] || '恢复失败');
+    S.ledger.data = r.data; saveLocal(); S.busy = false;
+    S.msg = '已恢复，现在看到的就是那个版本'; S.msgType = 'ok';
+    await loadHistory();
+  } catch (e) { S.busy = false; say('恢复失败：' + e.message, 'err'); }
+}
+/* 清理云端多余的历史版本（每账本只留最近 5 份） */
+async function pruneSnapshots() {
+  if (!confirm('清理多余的旧版本？\n只留最近 5 份，更早的会被删掉且回不来。当前账本内容不受影响。')) return;
+  S.busy = true; render();
+  try {
+    const r = await rpc('ledger_prune_snapshots', { p_id: S.ledger.id, p_code: S.ledger.code, p_keep: 5 });
+    if (!r || !r.ok) throw new Error(ERR_TEXT[r && r.err] || '清理失败');
+    S.busy = false;
+    S.msg = r.deleted > 0
+      ? ('已清理 ' + r.deleted + ' 份旧版本，现在剩 ' + (r.kept || 0) + ' 份')
+      : '已经是干净的了，没有多余的旧版本';
+    S.msgType = 'ok';
+    S.history = null;
+    render();
+    await loadHistory();
+  } catch (e) {
+    S.busy = false;
+    const missing = /function|PGRST202|does not exist|isolation/i.test(e.message || '');
+    say(missing ? '清理功能需要服务器支持，请在服务器正常时再试' : ('清理失败：' + e.message), 'err');
+  }
+}
+/* 同步服务器：改地址 / 测连通 */
+function setApi(v) {
+  const s = String(v || '').trim();
+  try { s ? localStorage.setItem('taa_api', s) : localStorage.removeItem('taa_api'); } catch (e) {}
+  say(s ? ('同步地址已改为 ' + s) : '已恢复默认同步地址', 'ok');
+}
+function resetApi() {
+  try { localStorage.removeItem('taa_api'); } catch (e) {}
+  say('已恢复默认同步地址', 'ok');
+}
+async function testApi() {
+  S.busy = true; render();
+  try {
+    const r = await fetch(apiUrl(), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ op: 'ping' })
+    });
+    const b = await r.json().catch(() => null);
+    if (b && b.ok) {
+      if (b.db === 'memory') say('服务器通了，但它用的是临时内存库，重启会丢数据 —— 请检查 DATABASE_URL', 'err');
+      else say('服务器正常，已连上 Postgres（' + (b.db || '') + '）', 'ok');
+    } else {
+      say('服务器返回异常：' + ((b && (b.err || b.message)) || ('HTTP ' + r.status)), 'err');
+    }
+  } catch (e) { say('连不上：' + e.message, 'err'); }
+  S.busy = false; render();
+}
+/* 导入备份：默认「合并」，双方记录都留着，同一笔按最后修改时间取新的 */
+function importBackup(input) { return doImport(input, false); }
+function importOverwrite(input) { return doImport(input, true); }
+function doImport(input, overwrite) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  const fr = new FileReader();
+  fr.onload = async () => {
+    try {
+      const obj = JSON.parse(fr.result);
+      const d = obj && obj.data;
+      if (!d || !Array.isArray(d.members)) throw new Error('这不是本账本的备份文件');
+      const n = (Array.isArray(d.expenses) ? d.expenses.filter(e => !e.deleted).length : 0);
+      const before = expenses().length;
+      if (overwrite) {
+        if (!confirm('导入「' + (d.name || '未命名') + '」（' + n + ' 笔）？会覆盖当前内容。')) return;
+        d.code = S.ledger.code;
+        S.ledger.data = d;
+        await commit('已从备份文件覆盖恢复');
+      } else {
+        if (!confirm('合并「' + (d.name || '未命名') + '」（' + n + ' 笔）？\n两边都有的记录按最后修改时间取新的，不会丢。')) return;
+        d.code = S.ledger.code;
+        S.ledger.data = mergeData(data(), d);
+        saveLocal();
+        const after = expenses().length;
+        await commit('已合并备份，记录 ' + before + ' → ' + after + ' 笔');
+      }
+      render();
+    } catch (e) { say('导入失败：' + e.message, 'err'); }
+  };
+  fr.readAsText(f);
+  input.value = '';
+}
+
+/* ================= 启动 ================= */
+let pollTimer = null;
+async function boot() {
+  render();
+  S.recent = LS.get('taa_list', []);
+  const q = new URLSearchParams(location.search);
+  const qid = (q.get('ledger') || '').trim();
+  const qcode = (q.get('code') || '').trim().toUpperCase();
+  if (qid && qcode) {
+    await openLedger(qid, qcode);
+  } else {
+    const last = (S.recent || [])[0];
+    if (last && last.id && last.code) { await openSaved(last.id, last.code); }
+    else { S.view = 'lobby'; render(); }
+  }
+  clearInterval(pollTimer);
+  pollTimer = setInterval(() => {
+    if (S.view !== 'app' || !S.ledger) return;
+    const active = document.activeElement;
+    const typing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+    pull(typing || S.tab === 'add');
+  }, 8000);
+}
+boot();
+</script>
+</body>
+</html>
