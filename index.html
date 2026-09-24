@@ -76,6 +76,15 @@ hr{border:none;border-top:1px solid var(--line);margin:14px 0}
 .sync .d{width:6px;height:6px;border-radius:50%;background:var(--ok)}
 .sync.bad .d{background:var(--warn)}
 .sync.ing .d{background:var(--brand)}
+/* ===== 统计 / 饼图 ===== */
+.charts{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.pie-wrap{flex:0 0 auto;text-align:center}
+.legend{flex:1;min-width:180px}
+.legend-row{display:flex;align-items:center;gap:8px;font-size:14px;padding:3px 0}
+.legend-row .dot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+.legend-row .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.legend-row .pc{color:var(--muted);font-size:12px;min-width:44px;text-align:right}
+.legend-row .amt{font-weight:600;min-width:80px;text-align:right}
 </style>
 </head>
 <body>
@@ -150,6 +159,71 @@ const $ = s => document.querySelector(s);
 const root = document.getElementById('root');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = n => (Math.round((Number(n) || 0) * 100) / 100).toFixed(2);
+/* ===== 算式求值：金额、汇率里可以直接写 6+4 / (12+8)*2，回车自动出结果 ===== */
+/* 手写解析器，不用 eval —— 只认 数字 和 + - * / ( )，其它一律不认 */
+function parseMath(s) {
+  let i = 0;
+  function expr() { let v = term(); for (;;) { if (s[i] === '+') { i++; v += term(); } else if (s[i] === '-') { i++; v -= term(); } else return v; } }
+  function term() { let v = unary(); for (;;) { if (s[i] === '*') { i++; v *= unary(); } else if (s[i] === '/') { i++; const d = unary(); if (!d) throw 0; v /= d; } else return v; } }
+  function unary() { if (s[i] === '-') { i++; return -unary(); } if (s[i] === '+') { i++; return unary(); } return primary(); }
+  function primary() {
+    if (s[i] === '(') { i++; const v = expr(); if (s[i] !== ')') throw 0; i++; return v; }
+    const st = i;
+    while (i < s.length && s[i] >= '0' && s[i] <= '9') i++;
+    if (s[i] === '.') { i++; while (i < s.length && s[i] >= '0' && s[i] <= '9') i++; }
+    if (i === st) throw 0;
+    return parseFloat(s.slice(st, i));
+  }
+  const v = expr();
+  if (i !== s.length) throw 0;
+  return v;
+}
+/* dp：保留几位小数（金额 2 位、汇率 6 位）。没有运算符就返回 null */
+function evalMath(src, dp) {
+  if (src == null) return null;
+  const s = String(src)
+    .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[。．]/g, '.').replace(/＋/g, '+').replace(/[－−–—]/g, '-')
+    .replace(/[＊✕×]/g, '*').replace(/[／÷]/g, '/')
+    .replace(/（/g, '(').replace(/）/g, ')')
+    .replace(/[,，、\s]/g, '');
+  if (!s) return null;
+  if (!/[-+*/()]/.test(s.replace(/^[+-]/, ''))) return null;      // 纯数字：原样处理
+  if (!/^[0-9.+\-*/()]+$/.test(s)) return null;                    // 混了别的字符：不碰
+  let v;
+  try { v = parseMath(s); } catch (e) { return null; }
+  if (v == null || !isFinite(v)) return null;
+  const p = Math.pow(10, dp == null ? 2 : dp);
+  return Math.round(v * p) / p;
+}
+/* 输入框里按回车或 = 号 → 把算式换成结果 */
+function mathKey(e, field) {
+  if (e.key !== 'Enter' && e.key !== '=') return;
+  e.preventDefault();
+  mathCalc(field, true);
+}
+function mathCalc(field, refocus) {
+  const isRate = field === 'rate';
+  const el = document.getElementById(isRate ? 'f_rate' : 'f_amount');
+  if (!el) return;
+  const hint = document.getElementById(isRate ? 'rateHint' : 'amtHint');
+  const raw = String(el.value || '');
+  const v = evalMath(raw, isRate ? 6 : 2);
+  if (v == null) {
+    if (hint) hint.textContent = /[-+*/()]/.test(raw.replace(/^[-+]/, '')) ? '算不出来，检查一下符号和括号（只支持 + - * / 和括号）' : '';
+    return;
+  }
+  if (isRate) S.form.manualRate = String(v); else S.form.amount = String(v);
+  el.value = String(v);
+  if (hint) hint.textContent = '已算好 = ' + String(v);
+  updatePreview();
+  if (refocus) { try { el.focus(); el.select(); } catch (e) {} }
+}
+function mathNum(v, dp) {
+  if (v === '' || v == null) return null;
+  const c = evalMath(v, dp);
+  return c != null ? c : Number(v);
+}
 const uid = () => Math.random().toString(36).slice(2, 9);
 const rid = n => { const s = 'abcdefghijkmnpqrstuvwxyz23456789'; let r = '';
   for (let i = 0; i < n; i++) r += s[Math.floor(Math.random() * s.length)]; return r; };
@@ -158,6 +232,67 @@ const code6 = () => { const s = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r = '';
 const today = () => new Date().toISOString().slice(0, 10);
 const COLOR = ['#2563eb','#0f7b46','#b45309','#7c3aed','#be123c','#0369a1','#a16207','#4d7c0f','#9333ea','#0e7490'];
 const colorOf = i => COLOR[i % COLOR.length];
+
+/* ================= 花销分类 ================= */
+/* 关键词命中即归到对应类别；按数组顺序匹配，第一个命中为准；都没命中 → 其他 */
+const CATEGORIES = [
+  { name: '住宿', keys: ['住宿', '酒店', '宾馆', '民宿', '客栈', '旅馆', '青旅', 'homestay', 'hotel', '度假村'] },
+  { name: '门票', keys: ['门票', '缆车', '桨板', '漂流', '景区', '博物馆', '演出', '电影', '乐园', '滑雪', '潜水', '游船', '观光', '套票'] },
+  { name: '路费', keys: ['机票', '车票', '打车', '加油', '火车', '高铁', '地铁', '公交', '船票', '轮船', '租车', '停车', '过路', '油费', '的士', '出租', 'uber', '滴滴', '航班', '大巴', '摩的', '渡轮'] },
+  { name: '饮食', keys: ['奶茶', '咖啡', '早饭', '午饭', '晚饭', '早餐', '午餐', '晚餐', '饭', '餐', '粉', '面', '饭店', '餐厅', '小吃', '烧烤', '火锅', '零食', '水果', '饮料', '啤酒', '酒', '粥', '面包', '包子', '快餐', '宵夜', '甜品', '蛋糕'] },
+  { name: '购物', keys: ['衣服', '伴手礼', '购物', '特产', '礼品', '商场', '超市', '免税', '纪念品', '服饰', '鞋', '包', '化妆品', '数码', '周边'] }
+];
+const CAT_DEFAULT = '其他';
+const CAT_COLOR = ['#2563eb', '#0f7b46', '#be123c', '#b45309', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#ea580c', '#475569'];
+const CAT_NAMES = CATEGORIES.map(c => c.name).concat([CAT_DEFAULT]);
+function classifyItem(item) {
+  const s = String(item || '').toLowerCase();
+  for (const c of CATEGORIES) {
+    for (const k of c.keys) { if (s.indexOf(k.toLowerCase()) >= 0) return c.name; }
+  }
+  return CAT_DEFAULT;
+}
+function catOf(e) { return (e && e.category) || classifyItem(e ? e.item : ''); }
+function catColor(name) { const i = CAT_NAMES.indexOf(name); return CAT_COLOR[(i < 0 ? CAT_NAMES.length - 1 : i) % CAT_COLOR.length]; }
+function catOpts(f) {
+  const cur = (f && f.category) || classifyItem(f ? f.item : '') || CAT_DEFAULT;
+  return CAT_NAMES.map(n => `<option value="${n}" ${cur === n ? 'selected' : ''}>${n}</option>`).join('');
+}
+/* 各分类的人民币总额 */
+function categoryTotals() {
+  const m = {}; CAT_NAMES.forEach(n => m[n] = 0);
+  expenses().forEach(e => { const n = catOf(e); m[n] = (m[n] || 0) + cnyOf(e); });
+  return m;
+}
+/* 每个人（按付款人）的分类小计 */
+function payerBreakdown() {
+  const out = {};
+  members().forEach(m => out[m.id] = {});
+  expenses().forEach(e => {
+    const c = catOf(e);
+    if (e.payer && out[e.payer]) out[e.payer][c] = (out[e.payer][c] || 0) + cnyOf(e);
+  });
+  return out;
+}
+/* 手绘 SVG 饼图（无需第三方库）；segs: [{name,value,color}]，会忽略 value<=0 */
+function pieSVG(segs, size) {
+  size = size || 160; const cx = size / 2, cy = size / 2, r = size / 2 - 6;
+  const pos = segs.filter(s => s.value > 0);
+  const total = pos.reduce((a, s) => a + s.value, 0);
+  if (!(total > 0)) return '<svg width="' + size + '" height="' + size + '"></svg>';
+  if (pos.length === 1) return '<svg width="' + size + '" height="' + size + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + (pos[0].color || '#ccc') + '"></circle></svg>';
+  let a0 = -Math.PI / 2, parts = '';
+  segs.forEach(s => {
+    if (!(s.value > 0)) return;
+    const a1 = a0 + (s.value / total) * Math.PI * 2;
+    const x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0);
+    const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+    const large = (a1 - a0) > Math.PI ? 1 : 0;
+    parts += '<path d="M ' + cx + ' ' + cy + ' L ' + x0.toFixed(2) + ' ' + y0.toFixed(2) + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x1.toFixed(2) + ' ' + y1.toFixed(2) + ' Z" fill="' + (s.color || '#ccc') + '"></path>';
+    a0 = a1;
+  });
+  return '<svg width="' + size + '" height="' + size + '">' + parts + '</svg>';
+}
 
 const LS = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -464,6 +599,7 @@ function viewApp() {
   const tabs = `<div class="tabs">
       <button class="${t === 'add' ? 'on' : ''}" onclick="setTab('add')">记一笔</button>
       <button class="${t === 'list' ? 'on' : ''}" onclick="setTab('list')">明细</button>
+      <button class="${t === 'stats' ? 'on' : ''}" onclick="setTab('stats')">统计</button>
       <button class="${t === 'settle' ? 'on' : ''}" onclick="setTab('settle')">算账</button>
       <button class="${t === 'settings' ? 'on' : ''}" onclick="setTab('settings')">设置</button>
     </div>`;
@@ -474,7 +610,7 @@ function viewApp() {
           <span class="sync ${S.syncState}" onclick="manualPull()" title="点一下立即重试同步" style="cursor:pointer"><span class="d"></span>${esc(S.syncMsg || '已同步')}</span></div></div>
       <button class="sub" onclick="backToLobby()">切换</button>
     </div>`;
-  const body = t === 'add' ? viewAdd() : t === 'list' ? viewList() : t === 'settle' ? viewSettle() : viewSettings();
+  const body = t === 'add' ? viewAdd() : t === 'list' ? viewList() : t === 'stats' ? viewStats() : t === 'settle' ? viewSettle() : viewSettings();
   return head + tabs + msgHtml() + offlineHtml() + body;
 }
 
@@ -482,7 +618,7 @@ function newForm() {
   const ms = members(), shares = {};
   ms.forEach(m => shares[m.id] = 1);
   return {
-    date: today(), item: '', currency: 'CNY', amount: '',
+    date: today(), item: '', currency: 'CNY', amount: '', category: '',
     rateMode: 'table', manualRate: '', payer: S.meId || (ms[0] ? ms[0].id : ''),
     mode: 'avg', selected: ms.map(m => m.id), shares
   };
@@ -502,6 +638,7 @@ function formFromExpense(e) {
   f.selected = sel.length ? sel : ms.map(m => m.id);
   ms.forEach(m => { f.shares[m.id] = (sh[m.id] != null && Number(sh[m.id]) > 0) ? sh[m.id] : 1; });
   f._editId = e.id;
+  f.category = e.category || classifyItem(e.item);
   return f;
 }
 function viewAdd() {
@@ -552,17 +689,22 @@ function viewAdd() {
       <label class="mt">花了什么</label>
       <input type="text" id="f_item" placeholder="打车 / 门票 / 晚饭…" value="${esc(f.item)}" oninput="S.form.item=this.value">
       <label class="mt">金额（${esc(f.currency)}）</label>
-      <input type="text" inputmode="decimal" id="f_amount" placeholder="0.00" value="${esc(f.amount)}" oninput="S.form.amount=this.value;updatePreview()">
+      <input type="text" id="f_amount" placeholder="0.00，也可写 6+4 回车自动算" value="${esc(f.amount)}" oninput="S.form.amount=this.value;updatePreview()" onkeydown="mathKey(event,'amount')" onblur="mathCalc('amount')">
+      <div class="mini" id="amtHint" style="min-height:0"></div>
       ${f.currency !== 'CNY' ? `
         <div class="mt"><div class="seg">
           <button type="button" class="${f.rateMode === 'table' ? 'on' : ''}" onclick="S.form.rateMode='table';render()">用账本汇率 ${rates()[f.currency] || 1}</button>
           <button type="button" class="${f.rateMode === 'manual' ? 'on' : ''}" onclick="S.form.rateMode='manual';render()">自己填汇率</button>
         </div></div>
         ${f.rateMode === 'manual' ? `<label class="mt">本次汇率（1 ${esc(f.currency)} = ? 元）</label>
-          <input type="text" inputmode="decimal" id="f_rate" placeholder="${rates()[f.currency] || 1}" value="${esc(f.manualRate)}" oninput="S.form.manualRate=this.value;updatePreview()">` : ''}
+          <input type="text" id="f_rate" placeholder="${rates()[f.currency] || 1}" value="${esc(f.manualRate)}" oninput="S.form.manualRate=this.value;updatePreview()" onkeydown="mathKey(event,'rate')" onblur="mathCalc('rate')">
+          <div class="mini" id="rateHint" style="min-height:0"></div>` : ''}
         <div class="mini mt">折合人民币 ¥<span id="cnyHint">${money(cnyNow())}</span></div>` : ''}
       <label class="mt">谁付的钱</label>
       <select onchange="S.form.payer=this.value;render()">${payerOpts}</select>
+      <label class="mt">分类</label>
+      <select onchange="S.form.category=this.value;render()">${catOpts(f)}</select>
+      <div class="mini">默认按关键词自动归类（住宿 / 路费 / 饮食 / 门票 / 购物），也能手动改</div>
       <label class="mt">怎么分</label>
       <div class="seg">
         <button type="button" class="${f.mode === 'avg' ? 'on' : ''}" onclick="setMode('avg')">人均</button>
@@ -604,6 +746,7 @@ function viewList() {
         <b>${esc(e.item || '未命名')}</b>
         <span class="tag">${esc(nameOf(e.payer))} 付</span>
         ${e.currency !== 'CNY' ? `<span class="tag">${esc(e.currency)} ${money(e.amount)}</span>` : ''}
+        <span class="tag">${esc(catOf(e))}</span>
         <span style="margin-left:auto" class="big">¥${money(cny)}</span>
       </div>
       <div class="mini" style="margin:6px 0">${esc(e.date)} · ${e.mode === 'count' ? '按个数' : e.mode === 'ratio' ? '按比例' : '人均'} · 参与 ${Object.keys(w.weights).length} 人</div>
@@ -614,7 +757,8 @@ function viewList() {
   const head = picking ? pickBar(es) : `
     <div class="selbar">
       <span class="cnt">共 ${es.length} 笔 · 合计 ¥${money(es.reduce((a, e) => a + cnyOf(e), 0))}</span>
-      <button class="sub" style="padding:6px 12px;font-size:13px" onclick="enterSel()">批量删除</button>
+      <button class="sub" style="padding:6px 12px;font-size:13px" onclick="exportExcel()">导出 Excel</button>
+      <button class="sub" style="padding:6px 12px;font-size:13px;margin-left:8px" onclick="enterSel()">批量删除</button>
     </div>`;
   return `<div class="card">${head}${rows}</div>`;
 }
@@ -628,6 +772,42 @@ function pickBar(es) {
       <span class="cnt">已选 ${n} / ${all} 笔 · ¥${money(sum)}</span>
       <button class="danger" style="padding:6px 12px;font-size:13px" onclick="delSelected()" ${n ? '' : 'disabled'}>删除所选</button>
     </div>`;
+}
+
+function viewStats() {
+  const es = expenses();
+  if (!es.length) return '<div class="card center muted">还没有记录，去「记一笔」吧</div>';
+  const t = categoryTotals();
+  const grand = es.reduce((a, e) => a + cnyOf(e), 0);
+  const segs = CAT_NAMES.map(n => ({ name: n, value: Math.round(t[n] * 100) / 100, color: catColor(n) })).filter(s => s.value > 0);
+  const byPayer = payerBreakdown();
+  const legend = segs.slice().sort((a, b) => b.value - a.value).map(s => {
+    const pc = grand > 0 ? (s.value / grand * 100) : 0;
+    return `<div class="legend-row"><span class="dot" style="background:${s.color}"></span>
+      <span class="nm">${esc(s.name)}</span><span class="pc">${pc.toFixed(1)}%</span>
+      <span class="amt">¥${money(s.value)}</span></div>`;
+  }).join('');
+  const overall = `<div class="card">
+      <h3 style="font-size:15px;margin:0 0 10px">总盘子（折合人民币 ¥${money(grand)}）</h3>
+      <div class="charts"><div class="pie-wrap">${pieSVG(segs, 170)}</div><div class="legend">${legend}</div></div>
+    </div>`;
+  const cards = members().map(m => {
+    const map = byPayer[m.id] || {};
+    const total = Object.keys(map).reduce((a, k) => a + map[k], 0);
+    if (!(total > 0)) return '';
+    const segs2 = CAT_NAMES.map(n => ({ name: n, value: Math.round((map[n] || 0) * 100) / 100, color: catColor(n) })).filter(s => s.value > 0);
+    const leg = segs2.slice().sort((a, b) => b.value - a.value).map(s => {
+      const pc = total > 0 ? (s.value / total * 100) : 0;
+      return `<div class="legend-row"><span class="dot" style="background:${s.color}"></span>
+        <span class="nm">${esc(s.name)}</span><span class="pc">${pc.toFixed(0)}%</span>
+        <span class="amt">¥${money(s.value)}</span></div>`;
+    }).join('');
+    return `<div class="card">
+        <h3 style="font-size:15px;margin:0 0 10px">${esc(m.name)} 的花销（¥${money(total)}）</h3>
+        <div class="charts"><div class="pie-wrap">${pieSVG(segs2, 140)}</div><div class="legend">${leg}</div></div>
+      </div>`;
+  }).join('');
+  return overall + '<div class="mt">' + cards + '</div>';
 }
 
 function viewSettle() {
@@ -775,7 +955,7 @@ function weightOf(id) {
 }
 function cnyNow() {
   const f = S.form;
-  const amt = Number(f.amount) || 0;
+  const amt = mathNum(f.amount, 2) ?? (Number(f.amount) || 0);
   const rate = (f.rateMode === 'manual' && Number(f.manualRate) > 0) ? Number(f.manualRate) : (rates()[f.currency] || 1);
   return amt * rate;
 }
@@ -816,7 +996,7 @@ function bump(id, d) {
 async function addExpense() {
   const f = S.form;
   if (!f.item.trim()) return say('填一下这一笔是什么', 'err');
-  const amt = Number(f.amount);
+  const amt = mathNum(f.amount, 2) ?? Number(f.amount);
   if (!(amt > 0)) return say('金额请填大于 0 的数字', 'err');
   if (!f.selected.length) return say('至少选一个参与的人', 'err');
   const shares = {};
@@ -832,7 +1012,8 @@ async function addExpense() {
   const rec = {
     id: editId || (uid() + now.toString(36).slice(-4)),
     date: f.date, item: f.item.trim(), currency: f.currency, amount: amt,
-    rateMode: f.rateMode, manualRate: f.manualRate ? Number(f.manualRate) : null,
+    category: (f.category || classifyItem(f.item.trim()) || CAT_DEFAULT),
+    rateMode: f.rateMode, manualRate: mathNum(f.manualRate, 6),
     payer: f.payer, mode: f.mode, shares,
     by: S.meId || '', createdAt: now, updatedAt: now
   };
@@ -1155,6 +1336,94 @@ function historyHtml() {
       <button class="sub" style="padding:5px 10px;font-size:13px" onclick="restoreSnap(${it.id})">恢复到这时</button>
     </div>`).join('');
 }
+/* ================= 导出 Excel（纯前端生成 .xlsx，无需联网、无需第三方库） ================= */
+function xmlEsc(s) { return String(s == null ? '' : s).replace(/[&<>\t]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\t': '  ' }[c])); }
+function colLetter(n) { let s = ''; n++; while (n > 0) { s = String.fromCharCode(65 + (n - 1) % 26) + s; n = Math.floor((n - 1) / 26); } return s; }
+function sheetXml(rows) {
+  let body = '';
+  rows.forEach((r, ri) => {
+    let cells = '';
+    r.forEach((c, ci) => {
+      const ref = colLetter(ci) + (ri + 1);
+      if (typeof c === 'number' && isFinite(c)) cells += '<c r="' + ref + '"><v>' + c + '</v></c>';
+      else cells += '<c r="' + ref + '" t="inlineStr"><is><t xml:space="preserve">' + xmlEsc(c) + '</t></is></c>';
+    });
+    body += '<row r="' + (ri + 1) + '">' + cells + '</row>';
+  });
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + body + '</sheetData></worksheet>';
+}
+/* 把多个工作表打包成 xlsx 的 Blob（无压缩存储，自己写 zip） */
+function xlsxBlob(sheets) {
+  const enc = s => new TextEncoder().encode(s);
+  const files = [];
+  let wbSheets = '', wbRels = '';
+  sheets.forEach((sh, i) => {
+    const nm = sh.name || ('Sheet' + (i + 1));
+    files.push({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', data: enc(sheetXml(sh.rows)) });
+    wbSheets += '<sheet name="' + xmlEsc(nm) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>';
+    wbRels += '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>';
+  });
+  files.push({ name: '[Content_Types].xml', data: enc('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/></Types>') });
+  files.push({ name: '_rels/.rels', data: enc('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>') });
+  files.push({ name: 'xl/workbook.xml', data: enc('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + wbSheets + '</sheets></workbook>') });
+  files.push({ name: 'xl/_rels/workbook.xml.rels', data: enc('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + wbRels + '</Relationships>') });
+  return zipStore(files);
+}
+function crc32(buf) {
+  let c = ~0;
+  for (let i = 0; i < buf.length; i++) { c ^= buf[i]; for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xEDB88320 & -(c & 1)); }
+  return (~c) >>> 0;
+}
+function zipStore(files) {
+  const encName = n => new TextEncoder().encode(n);
+  const parts = [], central = []; let offset = 0;
+  const u16 = n => [n & 255, (n >>> 8) & 255];
+  const u32 = n => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255];
+  files.forEach(f => {
+    const nameBytes = encName(f.name), data = f.data, crc = crc32(data), size = data.length;
+    const lh = [].concat(u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(crc), u32(size), u32(size), u16(nameBytes.length), u16(0));
+    const lhBuf = new Uint8Array(lh);
+    const chunk = new Uint8Array(lhBuf.length + nameBytes.length + data.length);
+    chunk.set(lhBuf, 0); chunk.set(nameBytes, lhBuf.length); chunk.set(data, lhBuf.length + nameBytes.length);
+    parts.push(chunk);
+    const cd = [].concat(u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(crc), u32(size), u32(size), u16(nameBytes.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset));
+    const cdBuf = new Uint8Array(cd);
+    const cdChunk = new Uint8Array(cdBuf.length + nameBytes.length);
+    cdChunk.set(cdBuf, 0); cdChunk.set(nameBytes, cdBuf.length);
+    central.push(cdChunk);
+    offset += chunk.length;
+  });
+  const cdSize = central.reduce((a, c) => a + c.length, 0), cdOffset = offset;
+  const endBuf = new Uint8Array([].concat(u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(cdSize), u32(cdOffset), u16(0)));
+  const out = new Uint8Array(offset + cdSize + endBuf.length); let p = 0;
+  parts.forEach(ch => { out.set(ch, p); p += ch.length; });
+  central.forEach(ch => { out.set(ch, p); p += ch.length; });
+  out.set(endBuf, p);
+  return new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+function exportExcel() {
+  const es = expenses();
+  if (!es.length) return say('还没有记录，没法导出', 'err');
+  const detail = [['日期', '项目', '分类', '币种', '原币金额', '折合人民币', '付款人', '参与人', '分摊方式']];
+  es.slice().reverse().forEach(e => {
+    const w = sharesOf(e);
+    const parts = Object.keys(w.weights).map(k => nameOf(k)).join('、');
+    const modeTxt = e.mode === 'count' ? '按个数' : e.mode === 'ratio' ? '按比例' : '人均';
+    detail.push([e.date || '', e.item || '', catOf(e), e.currency || 'CNY', Number(e.amount) || 0, cnyOf(e), nameOf(e.payer), parts, modeTxt]);
+  });
+  const t = categoryTotals(), grand = es.reduce((a, e) => a + cnyOf(e), 0);
+  const sum = [['分类', '金额(人民币)', '占比%']];
+  CAT_NAMES.forEach(n => { if (t[n] > 0) sum.push([n, Math.round(t[n] * 100) / 100, Math.round(t[n] / grand * 1000) / 10]); });
+  sum.push(['合计', Math.round(grand * 100) / 100, 100]);
+  const blob = xlsxBlob([{ name: '明细账', rows: detail }, { name: '分类汇总', rows: sum }]);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = (data().name || '账本') + '-明细账-' + today() + '.xlsx';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  say('Excel 已下载（含「明细账」「分类汇总」两个表）', 'ok');
+}
+
 function exportBackup() {
   const payload = { app: 'travel-aa', v: 1, exportedAt: new Date().toISOString(), id: S.ledger.id, code: S.ledger.code, data: data() };
   const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
