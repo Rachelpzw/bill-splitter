@@ -237,9 +237,10 @@ const colorOf = i => COLOR[i % COLOR.length];
 /* 关键词命中即归到对应类别；按数组顺序匹配，第一个命中为准；都没命中 → 其他 */
 const CATEGORIES = [
   { name: '住宿', keys: ['住宿', '酒店', '宾馆', '民宿', '客栈', '旅馆', '青旅', 'homestay', 'hotel', '度假村'] },
-  { name: '门票', keys: ['门票', '缆车', '桨板', '漂流', '景区', '博物馆', '演出', '电影', '乐园', '滑雪', '潜水', '游船', '观光', '套票'] },
-  { name: '路费', keys: ['机票', '车票', '打车', '加油', '火车', '高铁', '地铁', '公交', '船票', '轮船', '租车', '停车', '过路', '油费', '的士', '出租', 'uber', '滴滴', '航班', '大巴', '摩的', '渡轮'] },
+  { name: '门票', keys: ['门票', '缆车', '桨板', '漂流', '景区', '博物馆', '滑雪', '潜水', '游船', '观光', '套票'] },
+  { name: '交通', keys: ['机票', '车票', '打车', '加油', '火车', '高铁', '地铁', '公交', '船票', '轮船', '租车', '停车', '过路', '油费', '的士', '出租', 'uber', '滴滴', '航班', '大巴', '摩的', '渡轮'] },
   { name: '饮食', keys: ['奶茶', '咖啡', '早饭', '午饭', '晚饭', '早餐', '午餐', '晚餐', '饭', '餐', '粉', '面', '饭店', '餐厅', '小吃', '烧烤', '火锅', '零食', '水果', '饮料', '啤酒', '酒', '粥', '面包', '包子', '快餐', '宵夜', '甜品', '蛋糕'] },
+  { name: '娱乐', keys: ['ktv', '唱k', '密室', '剧本杀', '桌游', '酒吧', '按摩', 'spa', '泡澡', '洗浴', '游戏厅', '电玩', '游乐场', '乐园', '演出', '电影', '演唱会', '音乐会', 'party', '轰趴', '保龄球', '台球'] },
   { name: '购物', keys: ['衣服', '伴手礼', '购物', '特产', '礼品', '商场', '超市', '免税', '纪念品', '服饰', '鞋', '包', '化妆品', '数码', '周边'] }
 ];
 const CAT_DEFAULT = '其他';
@@ -263,16 +264,6 @@ function categoryTotals() {
   const m = {}; CAT_NAMES.forEach(n => m[n] = 0);
   expenses().forEach(e => { const n = catOf(e); m[n] = (m[n] || 0) + cnyOf(e); });
   return m;
-}
-/* 每个人（按付款人）的分类小计 */
-function payerBreakdown() {
-  const out = {};
-  members().forEach(m => out[m.id] = {});
-  expenses().forEach(e => {
-    const c = catOf(e);
-    if (e.payer && out[e.payer]) out[e.payer][c] = (out[e.payer][c] || 0) + cnyOf(e);
-  });
-  return out;
 }
 /* 手绘 SVG 饼图（无需第三方库）；segs: [{name,value,color}]，会忽略 value<=0 */
 function pieSVG(segs, size) {
@@ -780,7 +771,6 @@ function viewStats() {
   const t = categoryTotals();
   const grand = es.reduce((a, e) => a + cnyOf(e), 0);
   const segs = CAT_NAMES.map(n => ({ name: n, value: Math.round(t[n] * 100) / 100, color: catColor(n) })).filter(s => s.value > 0);
-  const byPayer = payerBreakdown();
   const legend = segs.slice().sort((a, b) => b.value - a.value).map(s => {
     const pc = grand > 0 ? (s.value / grand * 100) : 0;
     return `<div class="legend-row"><span class="dot" style="background:${s.color}"></span>
@@ -791,23 +781,20 @@ function viewStats() {
       <h3 style="font-size:15px;margin:0 0 10px">总盘子（折合人民币 ¥${money(grand)}）</h3>
       <div class="charts"><div class="pie-wrap">${pieSVG(segs, 170)}</div><div class="legend">${legend}</div></div>
     </div>`;
-  const cards = members().map(m => {
-    const map = byPayer[m.id] || {};
-    const total = Object.keys(map).reduce((a, k) => a + map[k], 0);
-    if (!(total > 0)) return '';
-    const segs2 = CAT_NAMES.map(n => ({ name: n, value: Math.round((map[n] || 0) * 100) / 100, color: catColor(n) })).filter(s => s.value > 0);
-    const leg = segs2.slice().sort((a, b) => b.value - a.value).map(s => {
-      const pc = total > 0 ? (s.value / total * 100) : 0;
-      return `<div class="legend-row"><span class="dot" style="background:${s.color}"></span>
-        <span class="nm">${esc(s.name)}</span><span class="pc">${pc.toFixed(0)}%</span>
-        <span class="amt">¥${money(s.value)}</span></div>`;
-    }).join('');
-    return `<div class="card">
-        <h3 style="font-size:15px;margin:0 0 10px">${esc(m.name)} 的花销（¥${money(total)}）</h3>
-        <div class="charts"><div class="pie-wrap">${pieSVG(segs2, 140)}</div><div class="legend">${leg}</div></div>
-      </div>`;
+  const { owed } = totals();
+  const grand2 = members().reduce((a, m) => a + (owed[m.id] || 0), 0);
+  const perSegs = members().map((m, i) => ({ name: m.name, value: Math.round((owed[m.id] || 0) * 100) / 100, color: colorOf(i) })).filter(s => s.value > 0);
+  const perLeg = perSegs.slice().sort((a, b) => b.value - a.value).map(s => {
+    const pc = grand2 > 0 ? (s.value / grand2 * 100) : 0;
+    return `<div class="legend-row"><span class="dot" style="background:${s.color}"></span>
+      <span class="nm">${esc(s.name)}</span><span class="pc">${pc.toFixed(1)}%</span>
+      <span class="amt">¥${money(s.value)}</span></div>`;
   }).join('');
-  return overall + '<div class="mt">' + cards + '</div>';
+  const perCard = `<div class="card">
+      <h3 style="font-size:15px;margin:0 0 10px">每个人应付（合计 ¥${money(grand2)}）</h3>
+      <div class="charts"><div class="pie-wrap">${pieSVG(perSegs, 170)}</div><div class="legend">${perLeg}</div></div>
+    </div>`;
+  return overall + '<div class="mt">' + perCard + '</div>';
 }
 
 function viewSettle() {
@@ -1404,24 +1391,38 @@ function zipStore(files) {
 function exportExcel() {
   const es = expenses();
   if (!es.length) return say('还没有记录，没法导出', 'err');
-  const detail = [['日期', '项目', '分类', '币种', '原币金额', '折合人民币', '付款人', '参与人', '分摊方式']];
+  const ms = members();
+  const detail = [['日期', '项目', '分类', '币种', '原币金额', '折合人民币', '付款人', '参与人', '分摊方式'].concat(ms.map(m => m.name + '(应摊)'))];
   es.slice().reverse().forEach(e => {
     const w = sharesOf(e);
     const parts = Object.keys(w.weights).map(k => nameOf(k)).join('、');
     const modeTxt = e.mode === 'count' ? '按个数' : e.mode === 'ratio' ? '按比例' : '人均';
-    detail.push([e.date || '', e.item || '', catOf(e), e.currency || 'CNY', Number(e.amount) || 0, cnyOf(e), nameOf(e.payer), parts, modeTxt]);
+    const perHead = {};
+    ms.forEach(m => { perHead[m.id] = (w.weights[m.id] && w.total > 0) ? Math.round(cnyOf(e) * w.weights[m.id] / w.total * 100) / 100 : 0; });
+    detail.push([e.date || '', e.item || '', catOf(e), e.currency || 'CNY', Number(e.amount) || 0, cnyOf(e), nameOf(e.payer), parts, modeTxt].concat(ms.map(m => perHead[m.id])));
   });
   const t = categoryTotals(), grand = es.reduce((a, e) => a + cnyOf(e), 0);
   const sum = [['分类', '金额(人民币)', '占比%']];
   CAT_NAMES.forEach(n => { if (t[n] > 0) sum.push([n, Math.round(t[n] * 100) / 100, Math.round(t[n] / grand * 1000) / 10]); });
   sum.push(['合计', Math.round(grand * 100) / 100, 100]);
-  const blob = xlsxBlob([{ name: '明细账', rows: detail }, { name: '分类汇总', rows: sum }]);
+  const { owed, paid, net } = totals();
+  const settle = [['成员', '已付(人民币)', '应付(人民币)', '结算(已付-应付)']];
+  ms.forEach(m => {
+    settle.push([m.name,
+      Math.round((paid[m.id] || 0) * 100) / 100,
+      Math.round((owed[m.id] || 0) * 100) / 100,
+      Math.round((net[m.id] || 0) * 100) / 100]);
+  });
+  const sumPaid = ms.reduce((a, m) => a + (paid[m.id] || 0), 0);
+  const sumOwed = ms.reduce((a, m) => a + (owed[m.id] || 0), 0);
+  settle.push(['合计', Math.round(sumPaid * 100) / 100, Math.round(sumOwed * 100) / 100, Math.round((sumPaid - sumOwed) * 100) / 100]);
+  const blob = xlsxBlob([{ name: '明细账', rows: detail }, { name: '分类汇总', rows: sum }, { name: '结算总账', rows: settle }]);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = (data().name || '账本') + '-明细账-' + today() + '.xlsx';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  say('Excel 已下载（含「明细账」「分类汇总」两个表）', 'ok');
+  say('Excel 已下载（含「明细账」「分类汇总」「结算总账」三个表）', 'ok');
 }
 
 function exportBackup() {
