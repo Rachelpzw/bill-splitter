@@ -765,6 +765,17 @@ function pickBar(es) {
     </div>`;
 }
 
+/* 某个成员（按应付）在各分类上的小计：catName -> 金额 */
+function memberCatTotals(id) {
+  const out = {};
+  CAT_NAMES.forEach(n => out[n] = 0);
+  expenses().forEach(e => {
+    const w = sharesOf(e);
+    if (w.weights[id] > 0) out[catOf(e)] += cnyOf(e) * w.weights[id] / w.total;
+  });
+  return out;
+}
+
 function viewStats() {
   const es = expenses();
   if (!es.length) return '<div class="card center muted">还没有记录，去「记一笔」吧</div>';
@@ -781,20 +792,23 @@ function viewStats() {
       <h3 style="font-size:15px;margin:0 0 10px">总盘子（折合人民币 ¥${money(grand)}）</h3>
       <div class="charts"><div class="pie-wrap">${pieSVG(segs, 170)}</div><div class="legend">${legend}</div></div>
     </div>`;
-  const { owed } = totals();
-  const grand2 = members().reduce((a, m) => a + (owed[m.id] || 0), 0);
-  const perSegs = members().map((m, i) => ({ name: m.name, value: Math.round((owed[m.id] || 0) * 100) / 100, color: colorOf(i) })).filter(s => s.value > 0);
-  const perLeg = perSegs.slice().sort((a, b) => b.value - a.value).map(s => {
-    const pc = grand2 > 0 ? (s.value / grand2 * 100) : 0;
-    return `<div class="legend-row"><span class="dot" style="background:${s.color}"></span>
-      <span class="nm">${esc(s.name)}</span><span class="pc">${pc.toFixed(1)}%</span>
-      <span class="amt">¥${money(s.value)}</span></div>`;
+  const cards = members().map((m) => {
+    const map = memberCatTotals(m.id);
+    const total = CAT_NAMES.reduce((a, n) => a + map[n], 0);
+    if (!(total > 0)) return '';
+    const segs2 = CAT_NAMES.map(n => ({ name: n, value: Math.round(map[n] * 100) / 100, color: catColor(n) })).filter(s => s.value > 0);
+    const leg = segs2.slice().sort((a, b) => b.value - a.value).map(s => {
+      const pc = total > 0 ? (s.value / total * 100) : 0;
+      return `<div class="legend-row"><span class="dot" style="background:${s.color}"></span>
+        <span class="nm">${esc(s.name)}</span><span class="pc">${pc.toFixed(1)}%</span>
+        <span class="amt">¥${money(s.value)}</span></div>`;
+    }).join('');
+    return `<div class="card">
+        <h3 style="font-size:15px;margin:0 0 10px">${esc(m.name)} 的花销分类（应付 ¥${money(total)}）</h3>
+        <div class="charts"><div class="pie-wrap">${pieSVG(segs2, 150)}</div><div class="legend">${leg}</div></div>
+      </div>`;
   }).join('');
-  const perCard = `<div class="card">
-      <h3 style="font-size:15px;margin:0 0 10px">每个人应付（合计 ¥${money(grand2)}）</h3>
-      <div class="charts"><div class="pie-wrap">${pieSVG(perSegs, 170)}</div><div class="legend">${perLeg}</div></div>
-    </div>`;
-  return overall + '<div class="mt">' + perCard + '</div>';
+  return overall + '<div class="mt"><h3 style="font-size:14px;color:var(--muted);margin:4px 0 10px">每个成员的花销分类占比</h3>' + cards + '</div>';
 }
 
 function viewSettle() {
